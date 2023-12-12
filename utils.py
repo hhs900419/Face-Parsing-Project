@@ -199,5 +199,5 @@ def reverse_one_hot(image):
         with a depth size of 1, where each pixel value is the classified 
         class key.
     """
-    x = np.argmax(image, axis = -1)
+    x = np.argmax(image, axis = 0)
     return x

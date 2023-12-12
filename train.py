@@ -61,16 +61,17 @@ def train():
         AdjustSaturation(saturation=0.1)
     })
     
-    ENCODER = 'efficientnet-b1'
+    ENCODER = 'resnet50'
     ENCODER_WEIGHTS = 'imagenet'
     ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
 
-    model = smp.DeepLabV3(
+    model = smp.FPN(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
         activation=ACTIVATION,
+        
     )
     model = model.to(DEVICE)
     preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
@@ -79,8 +80,8 @@ def train():
     trainset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=train_indices,
                                 mode='train', 
-                                # tr_transform=train_tranform, 
-                                augmentation=get_training_augmentation(),
+                                tr_transform=train_tranform, 
+                                # augmentation=get_training_augmentation(),
                                 preprocessing = get_preprocessing(preprocessing_fn))
     validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=valid_indices, 

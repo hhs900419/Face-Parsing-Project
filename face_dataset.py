@@ -84,15 +84,11 @@ class CelebAMask_HQ_Dataset(Dataset):
                 image, mask = sample['image'], sample['mask']
             
         # apply preprocessing
-        print("1:", mask.shape)
         mask = one_hot_encode(mask, 19)
-        print("2:", mask.shape)
         if self.preprocessing:
             sample = self.preprocessing(image=image, mask=mask)
             image, mask = sample['image'], sample['mask']
-        print("3:", mask.shape)
         mask = reverse_one_hot(mask)
-        print("4:", mask.shape)
 
         # image = self.to_tensor(image)
         # mask = torch.from_numpy(np.array(mask)).long()

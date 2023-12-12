@@ -147,7 +147,7 @@ class Trainer:
         ax[0].plot(range(self.epochs), metrics['valid_loss'], label='Valid')
         ax[0].legend()
         ax[1].set_title('MIoU')
-        ax[1].plot(range(self.epochs), metrics['train_dice'], label='Train')
+        ax[1].plot(range(self.epochs), metrics['train_miou'], label='Train')
         ax[1].plot(range(self.epochs), metrics['valid_miou'], label='Valid')
         ax[1].legend()
         plt.show()
