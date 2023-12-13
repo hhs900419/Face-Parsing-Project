@@ -44,7 +44,8 @@ class Trainer:
             # 3. compute the loss
             loss1 = self.criterion(outputs, mask)
             loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
-            loss = loss1 + loss2
+            # loss = loss1 + loss2
+            loss = loss2
             # 4. back propagation
             loss.backward()
             # 5. parameter update
@@ -78,7 +79,8 @@ class Trainer:
                 outputs = self.model(img)
                 loss1 = self.criterion(outputs, mask)
                 loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
-                loss = loss1 + loss2
+                # loss = loss1 + loss2
+                loss = loss2
                 val_losses.append(loss.cpu().detach().numpy())
                 
                 # Match the dimension to compute different metrics
@@ -109,7 +111,8 @@ class Trainer:
             
             # learning rate scheduling
             if self.scheduler:
-                self.scheduler.step(val_miou)
+                self.scheduler.step()
+                # self.scheduler.step(val_miou)
             
             # Logs
             print('lr:',self.get_lr(self.optimizer))

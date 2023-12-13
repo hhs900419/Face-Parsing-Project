@@ -67,27 +67,28 @@ def train():
     ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
 
-    model = smp.FPN(
-        encoder_name=ENCODER, 
-        encoder_weights=ENCODER_WEIGHTS, 
-        classes=19, 
-        activation=ACTIVATION,
-        
-    )
+    # model = smp.FPN(
+    #     encoder_name=ENCODER, 
+    #     encoder_weights=ENCODER_WEIGHTS, 
+    #     classes=19, 
+    #     activation=ACTIVATION,
+    # )
+    # preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
+    
+    ## Attention Unet
+    model = AttentionUNet(3,19)
     model = model.to(DEVICE)
-    preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
 
     ### dataset ###
     trainset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=train_indices,
                                 mode='train', 
-                                tr_transform=train_tranform, 
-                                # augmentation=get_training_augmentation(),
-                                preprocessing = get_preprocessing(preprocessing_fn))
+                                tr_transform=train_tranform)
+                                # preprocessing = get_preprocessing(preprocessing_fn))
     validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=test_indices, 
-                                mode = 'val', 
-                                preprocessing=get_preprocessing(preprocessing_fn))
+                                mode = 'val')
+                                # preprocessing=get_preprocessing(preprocessing_fn))
     
     
     ### dataloader ###
@@ -129,7 +130,10 @@ def train():
     EPOCHS = configs.epochs
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5, min_lr=1e-6, verbose=True)  # goal: maximize miou
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5, min_lr=1e-6, verbose=True)  # goal: maximize miou
+    tmax = len(train_loader) * EPOCHS
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
+    
     criterion = DiceLoss()
     SAVEPATH = configs.model_path
     SAVENAME = configs.model_weight

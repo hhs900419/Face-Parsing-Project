@@ -77,21 +77,23 @@ class CelebAMask_HQ_Dataset(Dataset):
         image = np.array(image)
         mask = np.array(mask)
 
+        # apply augmentations
         if self.mode == 'train':
-            # apply augmentations
-            if self.augmentation:
+            if self.augmentation:   # Albumentation
                 sample = self.augmentation(image=image, mask=mask)
                 image, mask = sample['image'], sample['mask']
+            elif self.tr_transform:
+                image, mask = self.tr_transform(image, mask)
             
         # apply preprocessing
-        mask = one_hot_encode(mask, 19)
         if self.preprocessing:
+            mask = one_hot_encode(mask, 19)
             sample = self.preprocessing(image=image, mask=mask)
             image, mask = sample['image'], sample['mask']
-        mask = reverse_one_hot(mask)
-
-        # image = self.to_tensor(image)
-        # mask = torch.from_numpy(np.array(mask)).long()
+            mask = reverse_one_hot(mask)
+        else:
+            image = self.to_tensor(image)
+            mask = torch.from_numpy(np.array(mask)).long()
         
 
         

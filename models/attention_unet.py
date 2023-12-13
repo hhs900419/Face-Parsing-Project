@@ -1,139 +1,161 @@
-import numpy as np
 import torch
 import torch.nn as nn
 
 
-class Attention_block(nn.Module):
-    def __init__(self, F_g, F_l, F_int):
-        super(Attention_block, self).__init__()
-        self.W_g = nn.Sequential(
-            nn.Conv2d(F_g, F_int, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(F_int)
+class ConvBlock(nn.Module):
+
+    def __init__(self, in_channels, out_channels):
+        super(ConvBlock, self).__init__()
+
+        # number of input channels is a number of filters in the previous layer
+        # number of output channels is a number of filters in the current layer
+        # "same" convolutions
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+
+class UpConv(nn.Module):
+
+    def __init__(self, in_channels, out_channels):
+        super(UpConv, self).__init__()
+
+        self.up = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        x = self.up(x)
+        return x
+
+
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
         )
 
         self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, F_int, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(F_int)
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
         )
 
         self.psi = nn.Sequential(
-            nn.Conv2d(F_int, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm2d(1),
             nn.Sigmoid()
         )
 
         self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, g, x):
-        g1 = self.W_g(g)
-        x1 = self.W_x(x)
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
-
-        return x * psi
-
-
-class conv_block(nn.Module):
-    def __init__(self, ch_in, ch_out):
-        super(conv_block, self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        return self.conv(x)
+        out = skip_connection * psi
+        return out
 
 
-class up_conv(nn.Module):
-    def __init__(self, ch_in, ch_out):
-        super(up_conv, self).__init__()
-        self.up = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True)
-        )
+class AttentionUNet(nn.Module):
 
-    def forward(self, x):
-        return self.up(x)
+    def __init__(self, img_ch=3, output_ch=1):
+        super(AttentionUNet, self).__init__()
 
+        self.MaxPool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-class AttU_Net(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1, scale_factor=1):
-        super(AttU_Net, self).__init__()
-        filters = np.array([64, 128, 256, 512, 1024])
-        filters = filters // scale_factor
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.scale_factor = scale_factor
-        self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.Conv1 = ConvBlock(img_ch, 64)
+        self.Conv2 = ConvBlock(64, 128)
+        self.Conv3 = ConvBlock(128, 256)
+        self.Conv4 = ConvBlock(256, 512)
+        self.Conv5 = ConvBlock(512, 1024)
 
-        self.Conv1 = conv_block(ch_in=n_channels, ch_out=filters[0])
-        self.Conv2 = conv_block(ch_in=filters[0], ch_out=filters[1])
-        self.Conv3 = conv_block(ch_in=filters[1], ch_out=filters[2])
-        self.Conv4 = conv_block(ch_in=filters[2], ch_out=filters[3])
-        self.Conv5 = conv_block(ch_in=filters[3], ch_out=filters[4])
+        self.Up5 = UpConv(1024, 512)
+        self.Att5 = AttentionBlock(F_g=512, F_l=512, n_coefficients=256)
+        self.UpConv5 = ConvBlock(1024, 512)
 
-        self.Up5 = up_conv(ch_in=filters[4], ch_out=filters[3])
-        self.Att5 = Attention_block(F_g=filters[3], F_l=filters[3], F_int=filters[2])
-        self.Up_conv5 = conv_block(ch_in=filters[4], ch_out=filters[3])
+        self.Up4 = UpConv(512, 256)
+        self.Att4 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)
+        self.UpConv4 = ConvBlock(512, 256)
 
-        self.Up4 = up_conv(ch_in=filters[3], ch_out=filters[2])
-        self.Att4 = Attention_block(F_g=filters[2], F_l=filters[2], F_int=filters[1])
-        self.Up_conv4 = conv_block(ch_in=filters[3], ch_out=filters[2])
+        self.Up3 = UpConv(256, 128)
+        self.Att3 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)
+        self.UpConv3 = ConvBlock(256, 128)
 
-        self.Up3 = up_conv(ch_in=filters[2], ch_out=filters[1])
-        self.Att3 = Attention_block(F_g=filters[1], F_l=filters[1], F_int=filters[0])
-        self.Up_conv3 = conv_block(ch_in=filters[2], ch_out=filters[1])
+        self.Up2 = UpConv(128, 64)
+        self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
+        self.UpConv2 = ConvBlock(128, 64)
 
-        self.Up2 = up_conv(ch_in=filters[1], ch_out=filters[0])
-        self.Att2 = Attention_block(F_g=filters[0], F_l=filters[0], F_int=filters[0] // 2)
-        self.Up_conv2 = conv_block(ch_in=filters[1], ch_out=filters[0])
-
-        self.Conv_1x1 = nn.Conv2d(filters[0], n_classes, kernel_size=1, stride=1, padding=0)
+        self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
 
     def forward(self, x):
-        # encoding path
-        x1 = self.Conv1(x)
+        """
+        e : encoder layers
+        d : decoder layers
+        s : skip-connections from encoder layers to decoder layers
+        """
+        e1 = self.Conv1(x)
 
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
+        e2 = self.MaxPool(e1)
+        e2 = self.Conv2(e2)
 
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
+        e3 = self.MaxPool(e2)
+        e3 = self.Conv3(e3)
 
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
+        e4 = self.MaxPool(e3)
+        e4 = self.Conv4(e4)
 
-        x5 = self.Maxpool(x4)
-        x5 = self.Conv5(x5)
+        e5 = self.MaxPool(e4)
+        e5 = self.Conv5(e5)
 
-        # decoding + concat path
-        d5 = self.Up5(x5)
-        x4 = self.Att5(g=d5, x=x4)
-        d5 = torch.cat((x4, d5), dim=1)
-        d5 = self.Up_conv5(d5)
+        d5 = self.Up5(e5)
+
+        s4 = self.Att5(gate=d5, skip_connection=e4)
+        d5 = torch.cat((s4, d5), dim=1) # concatenate attention-weighted skip connection with previous layer output
+        d5 = self.UpConv5(d5)
 
         d4 = self.Up4(d5)
-        x3 = self.Att4(g=d4, x=x3)
-        d4 = torch.cat((x3, d4), dim=1)
-        d4 = self.Up_conv4(d4)
+        s3 = self.Att4(gate=d4, skip_connection=e3)
+        d4 = torch.cat((s3, d4), dim=1)
+        d4 = self.UpConv4(d4)
 
         d3 = self.Up3(d4)
-        x2 = self.Att3(g=d3, x=x2)
-        d3 = torch.cat((x2, d3), dim=1)
-        d3 = self.Up_conv3(d3)
+        s2 = self.Att3(gate=d3, skip_connection=e2)
+        d3 = torch.cat((s2, d3), dim=1)
+        d3 = self.UpConv3(d3)
 
         d2 = self.Up2(d3)
-        x1 = self.Att2(g=d2, x=x1)
-        d2 = torch.cat((x1, d2), dim=1)
-        d2 = self.Up_conv2(d2)
+        s1 = self.Att2(gate=d2, skip_connection=e1)
+        d2 = torch.cat((s1, d2), dim=1)
+        d2 = self.UpConv2(d2)
 
-        d1 = self.Conv_1x1(d2)
+        out = self.Conv(d2)
 
-        return d1
+        return out
