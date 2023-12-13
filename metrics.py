@@ -33,9 +33,10 @@ class SegMetric(object):
         FN = hist.sum(axis=1) - np.diag(hist)
         TP = np.diag(hist)
         # TN = hist.sum() - (FP + FN + TP)
-        precision = TP / (TP+FP)
-        recall = TP / (TP+FN)
-        f1 = (2 * (precision*recall) / (precision + recall)).mean()
+        epsilon = 1e-6
+        precision = TP / (TP+FP+epsilon)
+        recall = TP / (TP+FN+epsilon)
+        f1 = (2 * (precision*recall) / (precision + recall + epsilon)).mean()
 
         acc = np.diag(hist).sum() / hist.sum()
         acc_cls = np.diag(hist) / hist.sum(axis=1)
@@ -49,9 +50,6 @@ class SegMetric(object):
 
         return (
             {
-                "Overall Acc: \t": acc,
-                "Mean Acc : \t": acc_cls,
-                "FreqW Acc : \t": fwavacc,
                 "Mean IoU : \t": mean_iu,
                 "Overall F1: \t": f1,
             },

@@ -1,5 +1,6 @@
 import torch
 import os
+from utils import *
 
 class Configs():
     def __init__(self):
@@ -16,7 +17,7 @@ class Configs():
         self.lr = 5e-4
         # self.model_path = './model_weight/'
         self.model_path = '../model_weight/'
-        self.model_weight = f'model_FPN_res50_miou_{self.epochs}eps.pth'
+        self.model_weight = f'model_FPN_res50_miou_{self.epochs}eps_{get_current_timestamp()}.pth'
         # self.model_weight = f'model_debug.pth'
         self.cmp_result_dir = './result'
         self.debug = False

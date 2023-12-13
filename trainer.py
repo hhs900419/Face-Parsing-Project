@@ -51,6 +51,7 @@ class Trainer:
             self.optimizer.step()
             tr_losses.append(loss.cpu().detach().numpy())
             
+            # compute metric score
             outputs = F.interpolate(outputs, (h, w), mode='bilinear', align_corners=True)
             pred = outputs.data.max(1)[1].cpu().numpy()  # Matrix index
             gt = mask.cpu().numpy()

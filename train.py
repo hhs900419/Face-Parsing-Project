@@ -4,7 +4,8 @@ import cv2
 import numpy as np
 from augmentation import *
 from face_dataset import *
-from unet import *
+from models.unet import *
+from models.attention_unet import *
 from criterion import *
 from trainer import *
 from configs import *
@@ -45,10 +46,10 @@ def train():
     train_indices = list(train_indices)
     if configs.debug:
         train_indices = train_indices[:100]         ###############################   small training data for debugging   ###########################################
-    VAL_SIZE = configs.val_size
-    train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
+    # VAL_SIZE = configs.val_size
+    # train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
     print(len(train_indices))
-    print(len(valid_indices))
+    # print(len(valid_indices))
     print(len(test_indices))
     
     # augmentations
@@ -84,7 +85,7 @@ def train():
                                 # augmentation=get_training_augmentation(),
                                 preprocessing = get_preprocessing(preprocessing_fn))
     validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
-                                sample_indices=valid_indices, 
+                                sample_indices=test_indices, 
                                 mode = 'val', 
                                 preprocessing=get_preprocessing(preprocessing_fn))
     
@@ -108,7 +109,7 @@ def train():
                         num_workers = N_WORKERS, 
                         pin_memory = True,
                         drop_last = True)
-    print(f"training data: {len(train_indices)} and validation data: {len(valid_indices)} loaded succesfully ...")
+    print(f"training data: {len(train_indices)} and test data: {len(test_indices)} loaded succesfully ...")
     
     # print(trainset[0])
     # loader = iter(train_loader)
