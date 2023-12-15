@@ -62,21 +62,25 @@ def train():
         AdjustSaturation(saturation=0.1)
     })
     
-    ENCODER = 'resnet50'
+    ENCODER = 'efficientnet-b3'
     ENCODER_WEIGHTS = 'imagenet'
     ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
 
-    # model = smp.FPN(
-    #     encoder_name=ENCODER, 
-    #     encoder_weights=ENCODER_WEIGHTS, 
-    #     classes=19, 
-    #     activation=ACTIVATION,
-    # )
-    # preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
+    model = smp.Unet(
+        encoder_name=ENCODER, 
+        encoder_weights=ENCODER_WEIGHTS, 
+        classes=19, 
+        # activation=ACTIVATION,
+    )
+    # freeze encoder weight
+    model.encoder.eval()
+    for m in model.encoder.modules():
+        m.requires_grad_ = False
     
+    # preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
     ## Attention Unet
-    model = AttentionUNet(3,19)
+    # model = AttentionUNet(3,19)
     model = model.to(DEVICE)
 
     ### dataset ###
@@ -109,7 +113,7 @@ def train():
                         shuffle = False,
                         num_workers = N_WORKERS, 
                         pin_memory = True,
-                        drop_last = True)
+                        drop_last = False)
     print(f"training data: {len(train_indices)} and test data: {len(test_indices)} loaded succesfully ...")
     
     # print(trainset[0])
@@ -130,9 +134,9 @@ def train():
     EPOCHS = configs.epochs
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5, min_lr=1e-6, verbose=True)  # goal: maximize miou
-    tmax = len(train_loader) * EPOCHS
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.35, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    # tmax = len(train_loader) * EPOCHS
+    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
     
     criterion = DiceLoss()
     SAVEPATH = configs.model_path

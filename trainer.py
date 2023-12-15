@@ -111,7 +111,7 @@ class Trainer:
             
             # learning rate scheduling
             if self.scheduler:
-                self.scheduler.step()
+                self.scheduler.step(valid_loss)
                 # self.scheduler.step(val_miou)
             
             # Logs
@@ -133,7 +133,7 @@ class Trainer:
             history['valid_miou'].append(val_miou)
 
             # save model if best valid
-            if torch.tensor(history['valid_miou']).argmax() == epoch:
+            if torch.tensor(history['valid_loss']).argmin() == epoch:
                 torch.save(self.model.state_dict(), os.path.join(self.savepath, self.savename))
                 print('Model Saved!')
         self.plot_save_history(history)

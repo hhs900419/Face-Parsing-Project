@@ -5,6 +5,7 @@ import numpy as np
 from augmentation import *
 from face_dataset import *
 from models.unet import *
+from models.attention_unet import *
 from criterion import *
 from tester import *
 from configs import *
@@ -85,23 +86,24 @@ def test_fn():
     DEVICE = configs.device
     SAVEPATH = configs.model_path
     OUTPUT_DIR = configs.cmp_result_dir
-    MODEL_WEIGHT = configs.model_weight
+    MODEL_WEIGHT = configs.load_model_weight
     if configs.debug:
         MODEL_WEIGHT = 'model_debug.pth'
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
     criterion = DiceLoss()
-    model = Unet(n_channels=3, n_classes=19).to(DEVICE)
+    # model = Unet(n_channels=3, n_classes=19).to(DEVICE)
+    model = AttentionUNet(3,19).to(DEVICE)
     # model.load_state_dict(torch.load(os.path.join(SAVEPATH , 'model.pth')))
     model.load_state_dict(torch.load(os.path.join(SAVEPATH , MODEL_WEIGHT)))
     
 
-    ### testing
-    # Tester(model=model, 
-    #    testloader=test_loader, 
-    #    criterion=criterion, 
-    #    device=DEVICE).run()
+    ## testing
+    Tester(model=model, 
+       testloader=test_loader, 
+       criterion=criterion, 
+       device=DEVICE).run()
     
     labels_celeb = ['background','skin','nose',
         'eye_g','l_eye','r_eye','l_brow',
