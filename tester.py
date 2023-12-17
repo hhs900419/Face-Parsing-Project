@@ -45,9 +45,10 @@ class Tester:
                 h, w = size[1], size[2]
 
                 outputs = self.model(img)
-                loss1 = self.criterion(outputs, mask)
+                # loss1 = self.criterion(outputs, mask)
                 loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
-                loss = loss1 + loss2
+                # loss = loss1 + loss2
+                loss = loss2
                 test_losses.append(loss.cpu().detach().numpy())
                 
                 outputs = F.interpolate(outputs, (h, w), mode='bilinear', align_corners=True)

@@ -54,12 +54,12 @@ def train():
     
     # augmentations
     train_tranform = Compose({
-        RandomCrop(448),
-        RandomHorizontallyFlip(p=0.5),
-        AdjustBrightness(bf=0.1),
-        AdjustContrast(cf=0.1),
-        AdjustHue(hue=0.1),
-        AdjustSaturation(saturation=0.1)
+        # RandomCrop(448),
+        # RandomHorizontallyFlip(p=0.5),
+        # AdjustBrightness(bf=0.1),
+        # AdjustContrast(cf=0.1),
+        # AdjustHue(hue=0.1),
+        # AdjustSaturation(saturation=0.1)
     })
     
     ENCODER = 'efficientnet-b3'
@@ -67,7 +67,7 @@ def train():
     ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
 
-    model = smp.Unet(
+    model = smp.UnetPlusPlus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
@@ -80,14 +80,15 @@ def train():
     
     # preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
     ## Attention Unet
-    # model = AttentionUNet(3,19)
+    # model = Unet(3,19)
     model = model.to(DEVICE)
 
     ### dataset ###
     trainset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=train_indices,
                                 mode='train', 
-                                tr_transform=train_tranform)
+                                tr_transform=None)
+                                # tr_transform=train_tranform)
                                 # preprocessing = get_preprocessing(preprocessing_fn))
     validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=test_indices, 
@@ -134,11 +135,13 @@ def train():
     EPOCHS = configs.epochs
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.35, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=4, factor=0.25, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     # tmax = len(train_loader) * EPOCHS
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
     
-    criterion = DiceLoss()
+    # criterion = DiceLoss()
+    criterion = nn.CrossEntropyLoss()
     SAVEPATH = configs.model_path
     SAVENAME = configs.model_weight
     
@@ -150,6 +153,7 @@ def train():
         criterion=criterion, 
         optimizer=optimizer,
         scheduler=scheduler, 
+        # scheduler=None, 
         device=DEVICE,
         savepath=SAVEPATH, 
         savename=SAVENAME).run()

@@ -100,10 +100,10 @@ def test_fn():
     
 
     ## testing
-    Tester(model=model, 
-       testloader=test_loader, 
-       criterion=criterion, 
-       device=DEVICE).run()
+    # Tester(model=model, 
+    #    testloader=test_loader, 
+    #    criterion=criterion, 
+    #    device=DEVICE).run()
     
     labels_celeb = ['background','skin','nose',
         'eye_g','l_eye','r_eye','l_brow',
@@ -174,6 +174,7 @@ def test_fn():
                 mask = one_hot_mask[j,:,:] * 0
             else:
                 mask = one_hot_mask[j,:,:] * 255
+            # print(mask.shape)
             cv2.imwrite(f"{TEST_ID_DIR}/{classes[j]}.png", mask)
             dict_path[classes[j]] = f"{TEST_ID_DIR}/{classes[j]}.png"
 

@@ -182,11 +182,11 @@ def get_current_timestamp():
 
 def one_hot_encode(segmentation_map, num_classes=19):
     # Create an empty array with dimensions (num_classes, height, width)
-    one_hot_mask = np.zeros((segmentation_map.shape[0], segmentation_map.shape[1], num_classes), dtype=np.uint8)
+    one_hot_mask = np.zeros((num_classes, segmentation_map.shape[0], segmentation_map.shape[1]), dtype=np.uint8)
     
     # Iterate through each class and set the corresponding channel to 1
     for class_label in range(num_classes):
-        one_hot_mask[:, :, class_label] = (segmentation_map == class_label).astype(np.uint8)
+        one_hot_mask[class_label, :, :] = (segmentation_map == class_label).astype(np.uint8)
     
     return one_hot_mask
     

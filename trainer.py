@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 from metrics import *
+from utils import *
 from criterion import *
 
 class Trainer:
@@ -97,8 +98,11 @@ class Trainer:
         history = {
         'train_loss' : [],
         'train_miou' : [],
+        'train_f1': [],
         'valid_loss' : [],
-        'valid_miou' : []
+        'valid_miou' : [],
+        'valid_f1': [],
+        'lr' : []
         }
 
         for epoch in range(self.epochs):
@@ -107,11 +111,13 @@ class Trainer:
             valid_loss, val_metric_score = self.valid_fn()
             
             tr_miou = tr_metric_score["Mean IoU : \t"]
+            train_f1 = tr_metric_score["Overall F1: \t"]
             val_miou = val_metric_score["Mean IoU : \t"]
+            valid_f1 = tr_metric_score["Overall F1: \t"]
             
             # learning rate scheduling
             if self.scheduler:
-                self.scheduler.step(valid_loss)
+                self.scheduler.step(valid_f1)
                 # self.scheduler.step(val_miou)
             
             # Logs
@@ -131,9 +137,12 @@ class Trainer:
             history['valid_loss'].append(valid_loss)
             history['train_miou'].append(tr_miou)
             history['valid_miou'].append(val_miou)
+            history['train_f1'].append(train_f1)
+            history['valid_f1'].append(valid_f1)
 
             # save model if best valid
-            if torch.tensor(history['valid_loss']).argmin() == epoch:
+            # if torch.tensor(history['valid_loss']).argmin() == epoch:
+            if torch.tensor(history['valid_f1']).argmax() == epoch:
                 torch.save(self.model.state_dict(), os.path.join(self.savepath, self.savename))
                 print('Model Saved!')
         self.plot_save_history(history)
@@ -145,17 +154,20 @@ class Trainer:
     
     def plot_save_history(self, metrics):
         # Plot the loss curve against epoch
-        fig, ax = plt.subplots(2, 1, figsize=(10, 10), dpi=100)
-        ax[0].set_title('Loss (Dice + CE)')
+        fig, ax = plt.subplots(3, 1, figsize=(15, 15), dpi=100)
+        ax[0].set_title('Loss (CE)')
         ax[0].plot(range(self.epochs), metrics['train_loss'], label='Train')
         ax[0].plot(range(self.epochs), metrics['valid_loss'], label='Valid')
         ax[0].legend()
-        ax[1].set_title('MIoU')
-        ax[1].plot(range(self.epochs), metrics['train_miou'], label='Train')
-        ax[1].plot(range(self.epochs), metrics['valid_miou'], label='Valid')
+        ax[1].set_title('F1')
+        ax[1].plot(range(self.epochs), metrics['train_f1'], label='Train')
+        ax[1].plot(range(self.epochs), metrics['valid_f1'], label='Valid')
         ax[1].legend()
+        ax[2].set_title('learning rate')
+        ax[2].plot(range(self.epochs), metrics['lr'], label='Train')
+        ax[2].legend()
         plt.show()
-        fig.savefig(os.path.join(self.savepath , 'metrics.jpg'))
+        fig.savefig(os.path.join(self.savepath , f'metrics_{get_current_timestamp()}.jpg'))
         plt.close()
 
     

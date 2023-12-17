@@ -17,11 +17,12 @@ class Configs():
         self.lr = 1e-3
         # self.model_path = './model_weight/'
         self.model_path = '../model_weight/'
-        self.model_weight = f'model_FPN_res50_miou_{self.epochs}eps_{get_current_timestamp()}.pth'
+        self.model_weight = f'model_upp_eff3_noaug_schlrP_{self.epochs}eps_{get_current_timestamp()}.pth'
         self.load_model_weight = 'model_FPN_res50_miou_40eps_2023_12_14_020112.pth'
         # self.model_weight = f'model_debug.pth'
         self.cmp_result_dir = './result'
         self.debug = False
+        # self.debug = True
         
 
         
