@@ -74,9 +74,9 @@ def train():
         # activation=ACTIVATION,
     )
     # freeze encoder weight
-    model.encoder.eval()
-    for m in model.encoder.modules():
-        m.requires_grad_ = False
+    # model.encoder.eval()
+    # for m in model.encoder.modules():
+    #     m.requires_grad_ = False
     
     # preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
     ## Attention Unet

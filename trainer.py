@@ -139,6 +139,7 @@ class Trainer:
             history['valid_miou'].append(val_miou)
             history['train_f1'].append(train_f1)
             history['valid_f1'].append(valid_f1)
+            history['lr'].append(self.get_lr(self.optimizer))
 
             # save model if best valid
             # if torch.tensor(history['valid_loss']).argmin() == epoch:
