@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from torch import optim
 import gc
+import wandb
 import segmentation_models_pytorch as smp
 from albumentation import *
 
@@ -46,10 +47,10 @@ def train():
     train_indices = list(train_indices)
     if configs.debug:
         train_indices = train_indices[:100]         ###############################   small training data for debugging   ###########################################
-    # VAL_SIZE = configs.val_size
-    # train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
+        VAL_SIZE = configs.val_size
+        train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
     print(len(train_indices))
-    # print(len(valid_indices))
+    print(len(valid_indices)) 
     print(len(test_indices))
     
     # augmentations
@@ -61,6 +62,24 @@ def train():
         # AdjustHue(hue=0.1),
         # AdjustSaturation(saturation=0.1)
     })
+    
+    wandb.init(
+        project="Face Parsing",
+        name=f"experiment_{get_current_timestamp()}", 
+        # Track hyperparameters and run metadata
+        config={
+        "model Architecture": "Unet++",
+        "encoder": "efficientnet_b3",
+        "freeze encoder": False,
+        "augmentation": False,
+        "batch size": configs.batch_size,
+        "learning_rate": configs.lr,
+        "epochs": configs.epochs,
+        "criterion": "Cross Entropy",
+        "scheduler": "Reduce on Plateau",
+        "model weight": configs.model_weight
+        }
+    )
     
     ENCODER = 'efficientnet-b3'
     ENCODER_WEIGHTS = 'imagenet'
@@ -82,7 +101,7 @@ def train():
     ## Attention Unet
     # model = Unet(3,19)
     model = model.to(DEVICE)
-
+    wandb.watch(model, log="all", log_freq=10)
     ### dataset ###
     trainset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=train_indices,
@@ -90,11 +109,16 @@ def train():
                                 tr_transform=None)
                                 # tr_transform=train_tranform)
                                 # preprocessing = get_preprocessing(preprocessing_fn))
-    validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
-                                sample_indices=test_indices, 
-                                mode = 'val')
-                                # preprocessing=get_preprocessing(preprocessing_fn))
-    
+    if not configs.debug:
+        validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
+                                    sample_indices=test_indices, 
+                                    mode = 'val')
+                                    # preprocessing=get_preprocessing(preprocessing_fn))
+    else:
+        validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
+                                    sample_indices=valid_indices, 
+                                    mode = 'val')
+                                    # preprocessing=get_preprocessing(preprocessing_fn))
     
     ### dataloader ###
     BATCH_SIZE = configs.batch_size

@@ -3,10 +3,12 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
+import wandb
 
 from metrics import *
 from utils import *
 from criterion import *
+from configs import *
 
 class Trainer:
     def __init__(self, model, trainloader, validloader, epochs, criterion, optimizer, device, savepath, savename, scheduler=None):
@@ -113,7 +115,7 @@ class Trainer:
             tr_miou = tr_metric_score["Mean IoU : \t"]
             train_f1 = tr_metric_score["Overall F1: \t"]
             val_miou = val_metric_score["Mean IoU : \t"]
-            valid_f1 = tr_metric_score["Overall F1: \t"]
+            valid_f1 = val_metric_score["Overall F1: \t"]
             
             # learning rate scheduling
             if self.scheduler:
@@ -140,13 +142,22 @@ class Trainer:
             history['train_f1'].append(train_f1)
             history['valid_f1'].append(valid_f1)
             history['lr'].append(self.get_lr(self.optimizer))
-
+            
+            wandb.log({
+                "train_loss": train_loss,
+                "valid_loss": valid_loss,
+                "train_f1": train_f1,
+                "valid_f1": valid_f1,
+                "lr": self.get_lr(self.optimizer)
+            })
+            configs = Configs()
             # save model if best valid
             # if torch.tensor(history['valid_loss']).argmin() == epoch:
-            if torch.tensor(history['valid_f1']).argmax() == epoch:
+            if torch.tensor(history['valid_f1']).argmax() == epoch and not configs.debug:
                 torch.save(self.model.state_dict(), os.path.join(self.savepath, self.savename))
                 print('Model Saved!')
         self.plot_save_history(history)
+        # wandb.finish()
 
 
     def get_lr(self, optimizer):

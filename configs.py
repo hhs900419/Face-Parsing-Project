@@ -22,7 +22,7 @@ class Configs():
         # self.model_weight = f'model_debug.pth'
         self.cmp_result_dir = './result'
         self.debug = False
-        # self.debug = True
+        self.debug = True
         
 
         
