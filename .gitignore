@@ -183,3 +183,4 @@ result/*
 __pycache__/*
 test_result/
 mask.csv
+wandb/*
