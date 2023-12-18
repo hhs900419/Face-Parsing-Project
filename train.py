@@ -45,12 +45,14 @@ def train():
     
     # Split indices into training and validation sets
     train_indices = list(train_indices)
+    valid_indices = train_indices
     if configs.debug:
         train_indices = train_indices[:100]         ###############################   small training data for debugging   ###########################################
         VAL_SIZE = configs.val_size
         train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
     print(len(train_indices))
-    print(len(valid_indices)) 
+    if configs.debug:
+        print(len(valid_indices)) 
     print(len(test_indices))
     
     # augmentations
@@ -109,12 +111,11 @@ def train():
                                 tr_transform=None)
                                 # tr_transform=train_tranform)
                                 # preprocessing = get_preprocessing(preprocessing_fn))
+    validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
+                                sample_indices=test_indices, 
+                                mode = 'val')
+                                # preprocessing=get_preprocessing(preprocessing_fn))
     if not configs.debug:
-        validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
-                                    sample_indices=test_indices, 
-                                    mode = 'val')
-                                    # preprocessing=get_preprocessing(preprocessing_fn))
-    else:
         validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                     sample_indices=valid_indices, 
                                     mode = 'val')
