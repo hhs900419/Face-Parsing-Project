@@ -85,13 +85,16 @@ def test_fn():
     ### load model ###
     DEVICE = configs.device
     SAVEPATH = configs.model_path
-    OUTPUT_DIR = configs.cmp_result_dir
+    OUTPUT_DIR = f'configs.cmp_result_dir/vis_{get_current_timestamp()}'
     MODEL_WEIGHT = configs.load_model_weight
+    
     if configs.debug:
         MODEL_WEIGHT = 'model_debug.pth'
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
+
+    ### Load model
     criterion = DiceLoss()
     # model = Unet(n_channels=3, n_classes=19).to(DEVICE)
     model = AttentionUNet(3,19).to(DEVICE)
@@ -100,16 +103,12 @@ def test_fn():
     
 
     ## testing
-    # Tester(model=model, 
-    #    testloader=test_loader, 
-    #    criterion=criterion, 
-    #    device=DEVICE).run()
+    Tester(model=model, 
+       testloader=test_loader, 
+       criterion=criterion, 
+       device=DEVICE).run()
     
-    labels_celeb = ['background','skin','nose',
-        'eye_g','l_eye','r_eye','l_brow',
-        'r_brow','l_ear','r_ear','mouth',
-        'u_lip','l_lip','hair','hat',
-        'ear_r','neck_l','neck','cloth']
+    
 
     ### visualize
     cmap = np.array([(0,  0,  0), (204, 0,  0), (76, 153, 0),
@@ -162,7 +161,7 @@ def test_fn():
         # print(one_hot_mask.shape)
         # print(one_hot_mask)
         
-        test_dir = "test_result"
+        test_dir = f"result/test_result_{get_current_timestamp()}"
         TEST_ID_DIR = f'{test_dir}/Test-image-{idx}'
         if not os.path.exists(TEST_ID_DIR):
             os.makedirs(TEST_ID_DIR)
@@ -180,17 +179,17 @@ def test_fn():
 
 
         # generate color mask image
-        color_gt_mask = cmap[gt_mask]
-        color_pr_mask = cmap[pred_mask]
-        
-        # plt.figure(figsize=(13, 6))
-        # image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
-        # image = image.resize((512, 512), Image.BILINEAR)
-        # img_list = [image, color_pr_mask, color_gt_mask]
-        # for i in range(3):
-        #     plt.subplot(1, 3, i+1)
-        #     plt.imshow(img_list[i])
-        # plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
+        if i % 100 == 0:
+            color_gt_mask = cmap[gt_mask]
+            color_pr_mask = cmap[pred_mask]
+            plt.figure(figsize=(13, 6))
+            image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
+            image = image.resize((512, 512), Image.BILINEAR)
+            img_list = [image, color_pr_mask, color_gt_mask]
+            for i in range(3):
+                plt.subplot(1, 3, i+1)
+                plt.imshow(img_list[i])
+            plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
 
         labels_celeb = ['background','skin','nose',
         'eye_g','l_eye','r_eye','l_brow',
