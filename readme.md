@@ -1,3 +1,8 @@
+## Dependencies
+- Alumentaions
+- Segmentation-model-pytorch
+- wandb
+
 ## Training
 1. Prepare training data :
     -- download [CelebAMask-HQ dataset](https://github.com/switchablenorms/CelebAMask-HQ)
