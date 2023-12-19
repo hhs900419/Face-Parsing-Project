@@ -49,3 +49,6 @@ def preprocess():
 
 
     print(counter, total)
+    
+if __name__ == "__main__":
+    preprocess()

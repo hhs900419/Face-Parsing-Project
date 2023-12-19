@@ -12,11 +12,10 @@ from configs import *
 
 class Trainer:
     def __init__(self, model, trainloader, validloader, epochs, criterion, optimizer, device, savepath, savename, scheduler=None):
-        
+        # Class Atrribute initialization
         self.model = model
         self.train_loader = trainloader
         self.valid_loader = validloader
-
         self.epochs = epochs
         self.criterion = criterion
         self.optimizer = optimizer
@@ -30,14 +29,15 @@ class Trainer:
 
     def train_fn(self):
         self.model.train()
-        tr_losses = []
-        # To record all kinds of evaluation metrics
+        
+        # To record miou and F1score
         metrics = SegMetric(n_classes=19)
+        tr_losses = []
 
+        # loop over trainloader and train for 1 epoch
         for img, mask in tqdm(self.train_loader):
             img = img.to(self.device)
             mask = mask.to(self.device)
-            
             h, w = mask.size()[1], mask.size()[2]
 
             # 1. clear gradient
@@ -56,6 +56,7 @@ class Trainer:
             tr_losses.append(loss.cpu().detach().numpy())
             
             # compute metric score
+            # Match the dimension to compute different metrics
             outputs = F.interpolate(outputs, (h, w), mode='bilinear', align_corners=True)
             pred = outputs.data.max(1)[1].cpu().numpy()  # Matrix index
             gt = mask.cpu().numpy()
@@ -67,16 +68,16 @@ class Trainer:
         
     def valid_fn(self):
         self.model.eval()
+        
+        # To record miou and F1score
+        metrics = SegMetric(n_classes=19)
         val_losses = []
         
-        # To record all kinds of evaluation metrics
-        metrics = SegMetric(n_classes=19)
-
+        # evaluate with validloader
         with torch.no_grad():
             for img, mask in tqdm(self.valid_loader):
                 img = img.to(self.device)
                 mask = mask.to(self.device)
-                
                 h, w = mask.size()[1], mask.size()[2]
                 
                 outputs = self.model(img)
@@ -86,6 +87,7 @@ class Trainer:
                 loss = loss2
                 val_losses.append(loss.cpu().detach().numpy())
                 
+                # compute metric score
                 # Match the dimension to compute different metrics
                 outputs = F.interpolate(outputs, (h, w), mode='bilinear', align_corners=True)
                 pred = outputs.data.max(1)[1].cpu().numpy()  # Matrix index
@@ -97,6 +99,7 @@ class Trainer:
             return avg_val_loss, metric_scores
         
     def run(self):
+        # dictionary to save loss and metrics
         history = {
         'train_loss' : [],
         'train_miou' : [],
@@ -107,14 +110,15 @@ class Trainer:
         'lr' : []
         }
 
+        # Training loop
         for epoch in range(self.epochs):
             print(f'Epoch {epoch+1:03d} / {self.epochs:03d}:')
             train_loss, tr_metric_score = self.train_fn()
             valid_loss, val_metric_score = self.valid_fn()
             
             tr_miou = tr_metric_score["Mean IoU : \t"]
-            train_f1 = tr_metric_score["Overall F1: \t"]
             val_miou = val_metric_score["Mean IoU : \t"]
+            train_f1 = tr_metric_score["Overall F1: \t"]
             valid_f1 = val_metric_score["Overall F1: \t"]
             
             # learning rate scheduling
@@ -135,6 +139,7 @@ class Trainer:
                 print(k, v)
             print("---------------------------------------------------")
 
+            # record training history
             history['train_loss'].append(train_loss)
             history['valid_loss'].append(valid_loss)
             history['train_miou'].append(tr_miou)
@@ -143,6 +148,7 @@ class Trainer:
             history['valid_f1'].append(valid_f1)
             history['lr'].append(self.get_lr(self.optimizer))
             
+            # record wandb logs
             wandb.log({
                 "train_loss": train_loss,
                 "valid_loss": valid_loss,
@@ -150,14 +156,15 @@ class Trainer:
                 "valid_f1": valid_f1,
                 "lr": self.get_lr(self.optimizer)
             })
+            
+            # save model if best valid loss or best valid F1
             configs = Configs()
-            # save model if best valid
             # if torch.tensor(history['valid_loss']).argmin() == epoch:
             if torch.tensor(history['valid_f1']).argmax() == epoch and not configs.debug:
                 torch.save(self.model.state_dict(), os.path.join(self.savepath, self.savename))
                 print('Model Saved!')
+        # plot the curve after finishing training
         self.plot_save_history(history)
-        # wandb.finish()
 
 
     def get_lr(self, optimizer):

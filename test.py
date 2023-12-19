@@ -46,15 +46,13 @@ def test_fn():
     # Split indices into training and validation sets
     train_indices = list(train_indices)
     if configs.debug:
-        train_indices = train_indices[:100]         ############################################################################################################
+        train_indices = train_indices[:100]         
     VAL_SIZE = configs.val_size
     train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
-    print(len(train_indices))
-    print(len(valid_indices))
     print(len(test_indices))
 
 
-    ### dataloader ###
+    ### test dataloader ###
     BATCH_SIZE = configs.batch_size
     N_WORKERS = configs.n_workers
 
@@ -83,7 +81,7 @@ def test_fn():
     #################################
     
 
-    ### load model ###
+    ### load model weight ###
     DEVICE = configs.device
     SAVEPATH = configs.model_path
     OUTPUT_DIR = f'{configs.cmp_result_dir}/vis_{get_current_timestamp()}'
@@ -94,28 +92,22 @@ def test_fn():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
-
-    ### Load model
-    criterion = DiceLoss()
-    # model = Unet(n_channels=3, n_classes=19).to(DEVICE)
-    # model = AttentionUNet(3,19).to(DEVICE)
+    ## make sure the setting is same as the model in train.py
     ENCODER = 'efficientnet-b3'
     ENCODER_WEIGHTS = 'imagenet'
-    ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
-
     model = smp.UnetPlusPlus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
-        # activation=ACTIVATION,
     )
     model = model.to(DEVICE)
-    # model.load_state_dict(torch.load(os.path.join(SAVEPATH , 'model.pth')))
     model.load_state_dict(torch.load(os.path.join(SAVEPATH , MODEL_WEIGHT)))
     
 
     ## testing
+    criterion = DiceLoss()
+    
     Tester(model=model, 
        testloader=test_loader, 
        criterion=criterion, 
@@ -124,17 +116,16 @@ def test_fn():
     
     
 
-    ### visualize
+    ### visualize and generate csv file
     cmap = np.array([(0,  0,  0), (204, 0,  0), (76, 153, 0),
                          (204, 204, 0), (51, 51, 255), (204, 0, 204), (0, 255, 255),
                          (51, 255, 255), (102, 51, 0), (255, 0, 0), (102, 204, 0),
                          (255, 255, 0), (0, 0, 153), (0, 0, 204), (255, 51, 153),
                          (0, 204, 204), (0, 51, 0), (255, 153, 51), (0, 204, 0)],
                         dtype=np.uint8)
-    
+    # some preprocessing
     to_tensor = transforms.Compose([
                 transforms.ToTensor(),
-                # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                 ])
     image_dir = os.path.join(ROOT_DIR, 'CelebA-HQ-img') 
@@ -147,15 +138,14 @@ def test_fn():
         test_dataset.append([img_path, label_path])
 
     # inference again in file order
-    # for i in tqdm(range(0, len(train_indices))):
     test_dir = f"result/test_result_{get_current_timestamp()}"
     for i in tqdm(range(0, len(test_indices))):
+        ### The below operation is simmilar to the __getitem__() function
         idx = test_indices[i]
         if configs.debug:
             idx = valid_indices[i]
             idx = train_indices[i]
         img_pth, mask_pth = test_dataset[idx]
-
         image = Image.open(img_pth).convert('RGB')
         image = image.resize((512, 512), Image.BILINEAR)
         mask = Image.open(mask_pth).convert('L')
@@ -163,6 +153,7 @@ def test_fn():
         image = to_tensor(image).unsqueeze(0)
         gt_mask = torch.from_numpy(np.array(mask)).long()
 
+        ### predict with model
         pred_mask = model(image.to(DEVICE))     # predict
         pred_mask = pred_mask.data.max(1)[1].cpu().numpy()  # Matrix index  (1,19,h,w) => (1,h,w)
         
@@ -172,7 +163,7 @@ def test_fn():
 
         classes = ['background', 'skin', 'l_brow', 'r_brow', 'l_eye', 'r_eye', 'eye_g', 'l_ear', 'r_ear', 'ear_r',
                 'nose', 'mouth', 'u_lip', 'l_lip', 'neck', 'neck_l', 'cloth', 'hair', 'hat']
-        one_hot_mask = one_hot_encode(pred_mask, 19)
+        one_hot_mask = one_hot_encode(pred_mask, 19)    # (h,w) -> (19, h, w)
         # print(one_hot_mask.shape)
         # print(one_hot_mask)
         
@@ -182,18 +173,17 @@ def test_fn():
             os.makedirs(TEST_ID_DIR)
 
         dict_path = {}    
-
+        # save seperated predict masks 
         for j in range(19):
             if j == 0:
                 mask = one_hot_mask[j,:,:] * 0
             else:
                 mask = one_hot_mask[j,:,:] * 255
-            # print(mask.shape)
             cv2.imwrite(f"{TEST_ID_DIR}/{classes[j]}.png", mask)
             dict_path[classes[j]] = f"{TEST_ID_DIR}/{classes[j]}.png"
 
 
-        # generate color mask image
+        # generate color mask image compared with GT(60 samples)
         if i % 100 == 0:
             color_gt_mask = cmap[gt_mask]
             color_pr_mask = cmap[pred_mask]
@@ -206,6 +196,7 @@ def test_fn():
                 plt.imshow(img_list[n])
             plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
 
+        ### Reorder the 19 class order since we use a different order during preprocessing
         labels_celeb = ['background','skin','nose',
         'eye_g','l_eye','r_eye','l_brow',
         'r_brow','l_ear','r_ear','mouth',
@@ -213,12 +204,10 @@ def test_fn():
         'ear_r','neck_l','neck','cloth']
 
         right_order_mask_path = {}
-
         for lab in labels_celeb:
             right_order_mask_path[lab] = dict_path[lab]
-
-
-        # print(i)
+        
+        # Csv file for submission
         mask2csv(mask_paths=right_order_mask_path, image_id=i)
         # break
 

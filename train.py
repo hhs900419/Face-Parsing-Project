@@ -31,7 +31,7 @@ def train():
     torch.cuda.manual_seed(SEED)
     
     
-    ### Train/Val/Test Split ###
+    ### 1. Train/Val/Test Split ### (this section is useless since i use testset as validation set directly)
     ROOT_DIR = configs.root_dir
     image_dir = os.path.join(ROOT_DIR, 'CelebA-HQ-img')
     
@@ -47,15 +47,14 @@ def train():
     train_indices = list(train_indices)
     valid_indices = train_indices
     if configs.debug:
-        train_indices = train_indices[:100]         ###############################   small training data for debugging   ###########################################
-        VAL_SIZE = configs.val_size
+        train_indices = train_indices[:100]         
         train_indices, valid_indices = train_test_split(train_indices, test_size=VAL_SIZE, random_state=SEED)
     print(len(train_indices))
     if configs.debug:
         print(len(valid_indices)) 
     print(len(test_indices))
     
-    # augmentations
+    ### 2. augmentations ### (Can either use Albumentations(albumentation.py) or functions in augmentation.py)
     train_tranform = Compose({
         # RandomCrop(448),
         # RandomHorizontallyFlip(p=0.5),
@@ -65,6 +64,7 @@ def train():
         # AdjustSaturation(saturation=0.1)
     })
     
+    ### 3. initialize wandb project as experiment configurations for better model tracking
     wandb.init(
         project="Face Parsing",
         name=f"experiment_{get_current_timestamp()}", 
@@ -83,29 +83,29 @@ def train():
         }
     )
     
+    ### 4. Model Initialization 
+    # (use smp library or you can put your model under the 'models/' folder and use it)
+    
     # ENCODER = 'efficientnet-b3'
     ENCODER = 'resnet50'
     ENCODER_WEIGHTS = 'imagenet'
-    ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
-
     model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
-        # activation=ACTIVATION,
     )
-    # freeze encoder weight
+    # freeze encoder weight(optional)   empirically, unfreezed weight gives better performance
     # model.encoder.eval()
     # for m in model.encoder.modules():
     #     m.requires_grad_ = False
     
-    # preprocessing_fn = smp.encoders.get_preprocessing_fn(ENCODER, ENCODER_WEIGHTS)
-    ## Attention Unet
     # model = Unet(3,19)
     model = model.to(DEVICE)
     wandb.watch(model, log="all", log_freq=10)
-    ### dataset ###
+    print("Model Initialized !")
+    
+    ### 5. Create CelebAMask-HQ dataset ### (use 6000 test imgs as validation set)
     trainset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=train_indices,
                                 mode='train', 
@@ -122,11 +122,9 @@ def train():
                                     mode = 'val')
                                     # preprocessing=get_preprocessing(preprocessing_fn))
     
-    ### dataloader ###
+    ### 6. dataloader ###
     BATCH_SIZE = configs.batch_size
     N_WORKERS = configs.n_workers
-
-    # sampler = torch.utils.data.distributed.DistributedSampler(trainset)
 
     train_loader = DataLoader(trainset,
                         batch_size = BATCH_SIZE,
@@ -143,21 +141,12 @@ def train():
                         drop_last = False)
     print(f"training data: {len(trainset)} and test data: {len(validset)} loaded succesfully ...")
     
-    # print(trainset[0])
-    # loader = iter(train_loader)
-    # im, ms = next(loader)
-    # print(im.dtype)
-    # print(ms.dtype)
     
     gc.collect()
     torch.cuda.empty_cache()    
     
-    ### Init model ###
-    # DEVICE = configs.device
-    # model = Unet(n_channels=3, n_classes=19).to(DEVICE)
-    print("Model Initialized !")
     
-    ### hyper params ###
+    ### 7. hyper params ###
     EPOCHS = configs.epochs
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
@@ -171,7 +160,7 @@ def train():
     SAVEPATH = configs.model_path
     SAVENAME = configs.model_weight
     
-    ### training ###
+    ### 8. training ###
     Trainer( model=model, 
         trainloader=train_loader,
         validloader=valid_loader,
