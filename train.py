@@ -70,8 +70,8 @@ def train():
         name=f"experiment_{get_current_timestamp()}", 
         # Track hyperparameters and run metadata
         config={
-        "model Architecture": "Unet++",
-        "encoder": "efficientnet_b3",
+        "model Architecture": "DLv3+",
+        "encoder": "resnet50",
         "freeze encoder": False,
         "augmentation": False,
         "batch size": configs.batch_size,
@@ -83,12 +83,13 @@ def train():
         }
     )
     
-    ENCODER = 'efficientnet-b3'
+    # ENCODER = 'efficientnet-b3'
+    ENCODER = 'resnet50'
     ENCODER_WEIGHTS = 'imagenet'
     ACTIVATION = 'sigmoid' 
     DEVICE = configs.device
 
-    model = smp.UnetPlusPlus(
+    model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
@@ -115,7 +116,7 @@ def train():
                                 sample_indices=test_indices, 
                                 mode = 'val')
                                 # preprocessing=get_preprocessing(preprocessing_fn))
-    if not configs.debug:
+    if configs.debug:
         validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                     sample_indices=valid_indices, 
                                     mode = 'val')
@@ -140,7 +141,7 @@ def train():
                         num_workers = N_WORKERS, 
                         pin_memory = True,
                         drop_last = False)
-    print(f"training data: {len(train_indices)} and test data: {len(test_indices)} loaded succesfully ...")
+    print(f"training data: {len(trainset)} and test data: {len(validset)} loaded succesfully ...")
     
     # print(trainset[0])
     # loader = iter(train_loader)
