@@ -39,6 +39,7 @@ python test.py
 #### Training
 - Keep tuning our model to acheive better result
 - External Dataset not added yet [FaceSynthetics](https://github.com/microsoft/FaceSynthetics), adding image with non-nuetral pose or occlusion might help.
+- The unseen dataset is **LaPa**
 
 #### Preprocessing
 - Face detection: crop the face region before feed to the model
