@@ -10,6 +10,7 @@ python prepropess_data.py
 
 3. Train
 Feel free to change different settings (see [smp doc](https://smp.readthedocs.io/en/latest/) for model initialization)
+Remember to set the configs in wandb.init() for better experiment recording
 ```Shell
 python train.py
 ```
