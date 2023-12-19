@@ -116,10 +116,11 @@ def test_fn():
     
 
     ## testing
-    # Tester(model=model, 
-    #    testloader=test_loader, 
-    #    criterion=criterion, 
-    #    device=DEVICE).run()
+    Tester(model=model, 
+       testloader=test_loader, 
+       criterion=criterion, 
+       device=DEVICE).run()
+    
     
     
 
@@ -175,7 +176,7 @@ def test_fn():
         # print(one_hot_mask.shape)
         # print(one_hot_mask)
         
-        
+       
         TEST_ID_DIR = f'{test_dir}/Test-image-{idx}'
         if not os.path.exists(TEST_ID_DIR):
             os.makedirs(TEST_ID_DIR)
