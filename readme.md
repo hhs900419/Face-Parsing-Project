@@ -1,5 +1,5 @@
 ## Dependencies
-- Alumentaions
+- Albumentaions
 - Segmentation-model-pytorch
 - wandb
 
