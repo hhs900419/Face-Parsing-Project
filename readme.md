@@ -52,7 +52,7 @@ python test.py
 - boundary smoothing
 - Grabcut
 
-### Extra thechnique
+#### Extra techniques
 - model ensembling
 
 # 大家加油
