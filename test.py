@@ -16,6 +16,7 @@ from torch.backends import cudnn
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from torch import optim
+import segmentation_models_pytorch as smp
 import gc
 from utils import *
 
@@ -85,16 +86,31 @@ def test_fn():
     ### load model ###
     DEVICE = configs.device
     SAVEPATH = configs.model_path
-    OUTPUT_DIR = configs.cmp_result_dir
+    OUTPUT_DIR = f'{configs.cmp_result_dir}/vis_{get_current_timestamp()}'
     MODEL_WEIGHT = configs.load_model_weight
+    
     if configs.debug:
         MODEL_WEIGHT = 'model_debug.pth'
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
+
+    ### Load model
     criterion = DiceLoss()
     # model = Unet(n_channels=3, n_classes=19).to(DEVICE)
-    model = AttentionUNet(3,19).to(DEVICE)
+    # model = AttentionUNet(3,19).to(DEVICE)
+    ENCODER = 'efficientnet-b3'
+    ENCODER_WEIGHTS = 'imagenet'
+    ACTIVATION = 'sigmoid' 
+    DEVICE = configs.device
+
+    model = smp.UnetPlusPlus(
+        encoder_name=ENCODER, 
+        encoder_weights=ENCODER_WEIGHTS, 
+        classes=19, 
+        # activation=ACTIVATION,
+    )
+    model = model.to(DEVICE)
     # model.load_state_dict(torch.load(os.path.join(SAVEPATH , 'model.pth')))
     model.load_state_dict(torch.load(os.path.join(SAVEPATH , MODEL_WEIGHT)))
     
@@ -105,11 +121,7 @@ def test_fn():
     #    criterion=criterion, 
     #    device=DEVICE).run()
     
-    labels_celeb = ['background','skin','nose',
-        'eye_g','l_eye','r_eye','l_brow',
-        'r_brow','l_ear','r_ear','mouth',
-        'u_lip','l_lip','hair','hat',
-        'ear_r','neck_l','neck','cloth']
+    
 
     ### visualize
     cmap = np.array([(0,  0,  0), (204, 0,  0), (76, 153, 0),
@@ -135,6 +147,7 @@ def test_fn():
 
     # inference again in file order
     # for i in tqdm(range(0, len(train_indices))):
+    test_dir = f"result/test_result_{get_current_timestamp()}"
     for i in tqdm(range(0, len(test_indices))):
         idx = test_indices[i]
         if configs.debug:
@@ -162,7 +175,7 @@ def test_fn():
         # print(one_hot_mask.shape)
         # print(one_hot_mask)
         
-        test_dir = "test_result"
+        
         TEST_ID_DIR = f'{test_dir}/Test-image-{idx}'
         if not os.path.exists(TEST_ID_DIR):
             os.makedirs(TEST_ID_DIR)
@@ -180,17 +193,17 @@ def test_fn():
 
 
         # generate color mask image
-        color_gt_mask = cmap[gt_mask]
-        color_pr_mask = cmap[pred_mask]
-        
-        # plt.figure(figsize=(13, 6))
-        # image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
-        # image = image.resize((512, 512), Image.BILINEAR)
-        # img_list = [image, color_pr_mask, color_gt_mask]
-        # for i in range(3):
-        #     plt.subplot(1, 3, i+1)
-        #     plt.imshow(img_list[i])
-        # plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
+        if i % 100 == 0:
+            color_gt_mask = cmap[gt_mask]
+            color_pr_mask = cmap[pred_mask]
+            plt.figure(figsize=(13, 6))
+            image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
+            image = image.resize((512, 512), Image.BILINEAR)
+            img_list = [image, color_pr_mask, color_gt_mask]
+            for n in range(3):
+                plt.subplot(1, 3, n+1)
+                plt.imshow(img_list[n])
+            plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
 
         labels_celeb = ['background','skin','nose',
         'eye_g','l_eye','r_eye','l_brow',

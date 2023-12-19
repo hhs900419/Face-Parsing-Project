@@ -180,7 +180,10 @@ pyrightconfig.json
 *.pyc
 *.pth
 result/*
+visualize/*
 __pycache__/*
 test_result/
-mask.csv
+*.csv
 wandb/*
+*.jpg
+*.png

@@ -256,7 +256,7 @@ def rle_decode(mask_rle, shape):
          img[lo:hi] = 255
     return img.reshape(shape)
 
-def mask2csv(mask_paths, csv_path='mask.csv',image_id=1,header=False):
+def mask2csv(mask_paths, csv_path=f'mask_{get_current_timestamp()}.csv',image_id=0,header=False):
     """
         mask_paths: dict of label:mask_paths
         ['label1':path1,'label2':path2,...]
@@ -273,13 +273,18 @@ def mask2csv(mask_paths, csv_path='mask.csv',image_id=1,header=False):
     df.insert(0,'label',labels_celeb)
     df.insert(0,'Usage',["Public" for i in range(len(results))])
     df.insert(0,'ID',[image_id*19+i for i in range(19)])
-    if header:
-        df.columns = ['ID','Usage','label','segmentation']
+    # if header:
+    #     df.columns = ['ID','Usage','label','segmentation']
     # print()
     # print(df)
-    df.to_csv(csv_path,mode='a',header=header,index=False)
+    if not os.path.exists(csv_path):
+        df.columns = ['ID', 'Usage', 'label', 'segmentation']
+        df.to_csv(csv_path, mode='w', header=True, index=False)
+    else:
+        df.to_csv(csv_path, mode='a', header=False, index=False)
+    # df.to_csv(csv_path,mode='a',header=header,index=False)
 
-def mask2csv2(masks, csv_path='mask.csv',image_id=1,header=False):
+def mask2csv2(masks, csv_path='mask.csv',image_id=0,header=False):
     """
         mask_paths: dict of label:mask
         ['label1':mask1,'label2':mask2,...]
