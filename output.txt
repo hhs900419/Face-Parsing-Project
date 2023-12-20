@@ -1,0 +1,5 @@
+24000
+6000
+training data: 24000 and test data: 6000 loaded succesfully ...
+Model Initialized !
+Epoch 001 / 030:

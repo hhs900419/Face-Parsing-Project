@@ -6,6 +6,7 @@ from augmentation import *
 from face_dataset import *
 from models.unet import *
 from models.attention_unet import *
+from models.deeplabv3plus_xception import *
 from criterion import *
 from trainer import *
 from configs import *
@@ -20,6 +21,9 @@ import gc
 import wandb
 import segmentation_models_pytorch as smp
 from albumentation import *
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def train():
@@ -29,7 +33,7 @@ def train():
     cudnn.benchmark = True
     cudnn.deterministic = False
     torch.cuda.manual_seed(SEED)
-    os.environ["CUDA_VISIBLE_DEVICES"] = configs.use_gpu_id
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     
     
     ### 1. Train/Val/Test Split ### (this section is useless since i use testset as validation set directly)
@@ -72,7 +76,7 @@ def train():
         # Track hyperparameters and run metadata
         config={
         "model Architecture": "DLv3+",
-        "encoder": "resnet50",
+        "encoder": "mobv2",
         "freeze encoder": False,
         "augmentation": False,
         "batch size": configs.batch_size,
@@ -87,8 +91,9 @@ def train():
     ### 4. Model Initialization 
     # (use smp library or you can put your model under the 'models/' folder and use it)
     
+    ############# SMP library ##########
     # ENCODER = 'efficientnet-b3'
-    ENCODER = 'resnet50'
+    ENCODER = 'mobilenet_v2'
     ENCODER_WEIGHTS = 'imagenet'
     DEVICE = configs.device
     model = smp.DeepLabV3Plus(
@@ -154,7 +159,7 @@ def train():
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=4, factor=0.25, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     # tmax = len(train_loader) * EPOCHS
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
     
