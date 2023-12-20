@@ -1,3 +1,8 @@
+## Dependencies
+- Albumentaions
+- Segmentation-model-pytorch
+- wandb
+
 ## Training
 1. Prepare training data :
     -- download [CelebAMask-HQ dataset](https://github.com/switchablenorms/CelebAMask-HQ)
@@ -10,6 +15,7 @@ python prepropess_data.py
 
 3. Train
 Feel free to change different settings (see [smp doc](https://smp.readthedocs.io/en/latest/) for model initialization)
+Remember to set the configs in wandb.init() for better experiment recording
 ```Shell
 python train.py
 ```
@@ -51,7 +57,7 @@ python test.py
 - boundary smoothing
 - Grabcut
 
-### Extra thechnique
+#### Extra techniques
 - model ensembling
 
 # 大家加油
