@@ -34,7 +34,7 @@ def train():
     cudnn.benchmark = True
     cudnn.deterministic = False
     torch.cuda.manual_seed(SEED)
-    os.environ["CUDA_VISIBLE_DEVICES"] = configs.use_gpu_id
+    # os.environ["CUDA_VISIBLE_DEVICES"] = configs.use_gpu_id
     
     
     ### 1. Train/Val/Test Split ### (this section is useless since i use testset as validation set directly)
@@ -110,7 +110,9 @@ def train():
     # model = Unet(3,19)
     
     # model = model.to(DEVICE)
-    model = models.deeplabv3plus_xception.DeepLabV3Plus(nInputChannels=3, n_classes=19, os=16, pretrained=True)
+    model = models.deeplabv3plus_xception.DeepLabv3_plus(nInputChannels=3, n_classes=19, os=16, pretrained=True)
+    if configs.parallel:
+        model = nn.DataParallel(model)
     model = model.cuda()
     # wandb.watch(model, log="all", log_freq=10)
     print("Model Initialized !")

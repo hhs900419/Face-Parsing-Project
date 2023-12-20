@@ -22,6 +22,7 @@ class Configs():
         self.cmp_result_dir = './visualize'
         self.debug = False
         # self.debug = True
+        self.parallel = False
         
 
         
