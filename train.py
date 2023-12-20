@@ -2,6 +2,7 @@ import os.path as osp
 import os
 import cv2
 import numpy as np
+import models
 from augmentation import *
 from face_dataset import *
 from models.unet import *
@@ -33,7 +34,7 @@ def train():
     cudnn.benchmark = True
     cudnn.deterministic = False
     torch.cuda.manual_seed(SEED)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = configs.use_gpu_id
     
     
     ### 1. Train/Val/Test Split ### (this section is useless since i use testset as validation set directly)
@@ -60,14 +61,14 @@ def train():
     print(len(test_indices))
     
     ### 2. augmentations ### (Can either use Albumentations(albumentation.py) or functions in augmentation.py)
-    train_tranform = Compose({
-        # RandomCrop(448),
-        # RandomHorizontallyFlip(p=0.5),
-        # AdjustBrightness(bf=0.1),
-        # AdjustContrast(cf=0.1),
-        # AdjustHue(hue=0.1),
-        # AdjustSaturation(saturation=0.1)
-    })
+    # train_tranform = Compose({
+    #     # RandomCrop(448),
+    #     # RandomHorizontallyFlip(p=0.5),
+    #     # AdjustBrightness(bf=0.1),
+    #     # AdjustContrast(cf=0.1),
+    #     # AdjustHue(hue=0.1),
+    #     # AdjustSaturation(saturation=0.1)
+    # })
     
     ### 3. initialize wandb project as experiment configurations for better model tracking
     wandb.init(
@@ -91,16 +92,16 @@ def train():
     ### 4. Model Initialization 
     # (use smp library or you can put your model under the 'models/' folder and use it)
     
+    DEVICE = configs.device
     ############# SMP library ##########
     # ENCODER = 'efficientnet-b3'
-    ENCODER = 'mobilenet_v2'
-    ENCODER_WEIGHTS = 'imagenet'
-    DEVICE = configs.device
-    model = smp.DeepLabV3Plus(
-        encoder_name=ENCODER, 
-        encoder_weights=ENCODER_WEIGHTS, 
-        classes=19, 
-    )
+    # ENCODER = 'mobilenet_v2'
+    # ENCODER_WEIGHTS = 'imagenet'
+    # model = smp.DeepLabV3Plus(
+    #     encoder_name=ENCODER, 
+    #     encoder_weights=ENCODER_WEIGHTS, 
+    #     classes=19, 
+    # )
     # freeze encoder weight(optional)   empirically, unfreezed weight gives better performance
     # model.encoder.eval()
     # for m in model.encoder.modules():
@@ -109,21 +110,20 @@ def train():
     # model = Unet(3,19)
     
     # model = model.to(DEVICE)
+    model = models.deeplabv3plus_xception.DeepLabV3Plus(nInputChannels=3, n_classes=19, os=16, pretrained=True)
     model = model.cuda()
-    wandb.watch(model, log="all", log_freq=10)
+    # wandb.watch(model, log="all", log_freq=10)
     print("Model Initialized !")
     
     ### 5. Create CelebAMask-HQ dataset ### (use 6000 test imgs as validation set)
     trainset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=train_indices,
                                 mode='train', 
+                                augmentation=get_training_augmentation(),
                                 tr_transform=None)
-                                # tr_transform=train_tranform)
-                                # preprocessing = get_preprocessing(preprocessing_fn))
     validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=test_indices, 
                                 mode = 'val')
-                                # preprocessing=get_preprocessing(preprocessing_fn))
     if configs.debug:
         validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                     sample_indices=valid_indices, 

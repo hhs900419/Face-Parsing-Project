@@ -12,7 +12,7 @@ class Configs():
         self.batch_size = 6
         self.n_workers = 4
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.use_gpu_id = "1"    # "0", "0,1"
+        self.use_gpu_id = 1
         self.epochs = 25
         self.lr = 1e-4
         self.model_path = '../model_weight/'
