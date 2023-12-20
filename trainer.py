@@ -36,8 +36,10 @@ class Trainer:
 
         # loop over trainloader and train for 1 epoch
         for img, mask in tqdm(self.train_loader):
-            img = img.to(self.device)
-            mask = mask.to(self.device)
+            # img = img.to(self.device)
+            # mask = mask.to(self.device)
+            img = img.cuda()
+            mask = mask.cuda()
             h, w = mask.size()[1], mask.size()[2]
 
             # 1. clear gradient
@@ -76,8 +78,10 @@ class Trainer:
         # evaluate with validloader
         with torch.no_grad():
             for img, mask in tqdm(self.valid_loader):
-                img = img.to(self.device)
-                mask = mask.to(self.device)
+                # img = img.to(self.device)
+                # mask = mask.to(self.device)
+                img = img.cuda()
+                mask = mask.cuda()
                 h, w = mask.size()[1], mask.size()[2]
                 
                 outputs = self.model(img)

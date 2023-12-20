@@ -36,8 +36,10 @@ class Tester:
 
         with torch.no_grad():
             for img, mask in tqdm(self.test_loader):
-                img = img.to(self.device)
-                mask = mask.to(self.device)
+                # img = img.to(self.device)
+                # mask = mask.to(self.device)
+                img = img.cuda()
+                mask = mask.cuda()
                 
                 labels = mask
                 

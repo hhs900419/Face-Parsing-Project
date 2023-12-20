@@ -29,6 +29,7 @@ def train():
     cudnn.benchmark = True
     cudnn.deterministic = False
     torch.cuda.manual_seed(SEED)
+    os.environ["CUDA_VISIBLE_DEVICES"] = configs.use_gpu_id
     
     
     ### 1. Train/Val/Test Split ### (this section is useless since i use testset as validation set directly)
@@ -101,7 +102,9 @@ def train():
     #     m.requires_grad_ = False
     
     # model = Unet(3,19)
-    model = model.to(DEVICE)
+    
+    # model = model.to(DEVICE)
+    model = model.cuda()
     wandb.watch(model, log="all", log_freq=10)
     print("Model Initialized !")
     

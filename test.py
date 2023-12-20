@@ -93,15 +93,17 @@ def test_fn():
         os.makedirs(OUTPUT_DIR)
 
     ## make sure the setting is same as the model in train.py
-    ENCODER = 'efficientnet-b3'
+    ENCODER = 'resnet50'
     ENCODER_WEIGHTS = 'imagenet'
     DEVICE = configs.device
-    model = smp.UnetPlusPlus(
+    model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
     )
-    model = model.to(DEVICE)
+    
+    # model = model.to(DEVICE)
+    model = model.cuda()
     model.load_state_dict(torch.load(os.path.join(SAVEPATH , MODEL_WEIGHT)))
     
 
@@ -154,7 +156,8 @@ def test_fn():
         gt_mask = torch.from_numpy(np.array(mask)).long()
 
         ### predict with model
-        pred_mask = model(image.to(DEVICE))     # predict
+        # pred_mask = model(image.to(DEVICE))     # predict
+        pred_mask = model(image.cuda())     # predict
         pred_mask = pred_mask.data.max(1)[1].cpu().numpy()  # Matrix index  (1,19,h,w) => (1,h,w)
         
         image = image.squeeze(0).permute(1,2,0)     # (1,3,h,w) -> (h,w,3)
