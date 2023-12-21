@@ -39,7 +39,7 @@ class SegMetric(object):
         f1 = (2 * (precision*recall) / (precision + recall + epsilon)).mean()
 
         iu = np.diag(hist) / (hist.sum(axis=1) +
-                              hist.sum(axis=0) - np.diag(hist))
+                              hist.sum(axis=0) - np.diag(hist) + epsilon)
         mean_iu = np.nanmean(iu)
         cls_iu = dict(zip(range(self.n_classes), iu))
 

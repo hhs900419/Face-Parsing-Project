@@ -77,13 +77,13 @@ def train():
         # Track hyperparameters and run metadata
         config={
         "model Architecture": "DLv3+",
-        "encoder": "mobv2",
+        "encoder": "res50",
         "freeze encoder": False,
-        "augmentation": False,
+        "augmentation": True,
         "batch size": configs.batch_size,
         "learning_rate": configs.lr,
         "epochs": configs.epochs,
-        "criterion": "Cross Entropy",
+        "criterion": "Dice",
         "scheduler": "Reduce on Plateau",
         "model weight": configs.model_weight
         }
@@ -94,14 +94,14 @@ def train():
     
     DEVICE = configs.device
     ############# SMP library ##########
-    # ENCODER = 'efficientnet-b3'
-    # ENCODER = 'mobilenet_v2'
-    # ENCODER_WEIGHTS = 'imagenet'
-    # model = smp.DeepLabV3Plus(
-    #     encoder_name=ENCODER, 
-    #     encoder_weights=ENCODER_WEIGHTS, 
-    #     classes=19, 
-    # )
+    # ENCODER = 'efficientnet-b6'
+    ENCODER = 'resnet50'
+    ENCODER_WEIGHTS = 'imagenet'
+    model = smp.DeepLabV3Plus(
+        encoder_name=ENCODER, 
+        encoder_weights=ENCODER_WEIGHTS, 
+        classes=19, 
+    )
     # freeze encoder weight(optional)   empirically, unfreezed weight gives better performance
     # model.encoder.eval()
     # for m in model.encoder.modules():
@@ -110,7 +110,7 @@ def train():
     # model = Unet(3,19)
     
     # model = model.to(DEVICE)
-    model = models.deeplabv3plus_xception.DeepLabv3_plus(nInputChannels=3, n_classes=19, os=16, pretrained=True)
+    # model = models.deeplabv3plus_xception.DeepLabv3_plus(nInputChannels=3, n_classes=19, os=16, pretrained=True)
     if configs.parallel:
         model = nn.DataParallel(model)
     model = model.cuda()
@@ -161,12 +161,15 @@ def train():
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     # tmax = len(train_loader) * EPOCHS
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
     
+    # Define your initial learning rate, max epochs, and power for polynomial decay
+       
+    criterion = smp.losses.DiceLoss(mode='multiclass', from_logits=True)
     # criterion = DiceLoss()
-    criterion = nn.CrossEntropyLoss()
+    # criterion = focal_loss()
     SAVEPATH = configs.model_path
     SAVENAME = configs.model_weight
     
