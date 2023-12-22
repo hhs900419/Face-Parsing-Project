@@ -49,8 +49,8 @@ class Trainer:
             # 3. compute the loss
             loss1 = self.criterion(outputs, mask)
             loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
-            # loss = 0.6*loss1 + 0.4*loss2
-            loss = loss1
+            loss = 0.6*loss1 + 0.4*loss2
+            # loss = loss1
             # 4. back propagation
             loss.backward()
             # 5. parameter update
@@ -87,8 +87,8 @@ class Trainer:
                 outputs = self.model(img)
                 loss1 = self.criterion(outputs, mask)
                 loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
-                # loss = 0.6*loss1 + 0.4*loss2
-                loss = loss1
+                loss = 0.6*loss1 + 0.4*loss2
+                # loss = loss1
                 val_losses.append(loss.cpu().detach().numpy())
                 
                 # compute metric score

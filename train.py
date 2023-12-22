@@ -76,8 +76,8 @@ def train():
         name=f"experiment_{get_current_timestamp()}", 
         # Track hyperparameters and run metadata
         config={
-        "model Architecture": "DLv3+",
-        "encoder": "res50",
+        "model Architecture": "FPN",
+        "encoder": "res101",
         "freeze encoder": False,
         "augmentation": True,
         "batch size": configs.batch_size,
@@ -95,9 +95,9 @@ def train():
     DEVICE = configs.device
     ############# SMP library ##########
     # ENCODER = 'efficientnet-b6'
-    ENCODER = 'resnet50'
+    ENCODER = 'resnet101'
     ENCODER_WEIGHTS = 'imagenet'
-    model = smp.DeepLabV3Plus(
+    model = smp.FPN(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
@@ -159,9 +159,9 @@ def train():
     ### 7. hyper params ###
     EPOCHS = configs.epochs
     LR = configs.lr
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.001, amsgrad=False)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2, factor=0.4, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     # tmax = len(train_loader) * EPOCHS
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
     
