@@ -83,7 +83,7 @@ def train():
         "batch size": configs.batch_size,
         "learning_rate": configs.lr,
         "epochs": configs.epochs,
-        "criterion": "Dice",
+        "criterion": "Dice + CE",
         "scheduler": "Reduce on Plateau",
         "model weight": configs.model_weight
         }

@@ -9,7 +9,7 @@ class Configs():
         self.seed = 1187
         self.root_dir = "/home/hsu/HD/CV/CelebAMask-HQ"
         self.val_size = 0.15
-        self.batch_size = 8
+        self.batch_size = 12
         self.n_workers = 4
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.use_gpu_id = 1
