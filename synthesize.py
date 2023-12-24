@@ -109,8 +109,8 @@ if __name__ == "__main__":
     mask_dir = os.path.join(ROOT_DIR, 'mask')    # Path to mask folder
     train_dataset = list_preprocess(image_dir, mask_dir)
     # print(len(train_dataset))
-    counter = 0
-    while counter < nums:
+    
+    while len(os.listdir(synth_image_dir)) < nums:
         #### random select 2 training data and load images and masks
         while True:
             idx_1 = random.randint(0, len(train_indices)-1)
@@ -135,8 +135,8 @@ if __name__ == "__main__":
         if synth_img is None:
             continue
         
-        counter += 1
         synth_img = cv2.cvtColor(synth_img, cv2.COLOR_RGB2BGR)
         cv2.imwrite(f"{synth_image_dir}/synth_{idx_1}.jpg", synth_img)
         synth_mask.save(f"{synth_mask_dir}/synth_{idx_1}.png")
-        print(counter)
+        print(len(os.listdir(synth_image_dir)))
+    print(len(os.listdir("/home/hsu/HD/CV/Synth-CelebAMask-HQ/masks")))
