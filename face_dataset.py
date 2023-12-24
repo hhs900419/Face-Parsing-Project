@@ -152,16 +152,51 @@ class Synth_CelebAMask_HQ_Dataset(Dataset):
         img_files.sort()
         mask_files.sort()
         for img_name in img_files:
-            img_path = osp.join(self.image_dir, img_name.split('.')[0], ".jpg")
-            mask_path = osp.join(self.mask_dir, img_name.split('.')[0], ".png")
+            img_path = osp.join(self.image_dir, img_name.split('.')[0] + ".jpg")
+            mask_path = osp.join(self.mask_dir, img_name.split('.')[0] + ".png")
             self.whole_dataset.append([img_path, mask_path])
                 
             
     def __getitem__(self, idx):
-        pass
+        if self.mode != "test":
+            img_pth, mask_pth = self.train_dataset[idx]
+        else:
+            img_pth, mask_pth = self.test_dataset[idx]
+            
+        # read img, mask
+        image = Image.open(img_pth).convert('RGB')
+        image = image.resize((512, 512), Image.BILINEAR)
+        mask = Image.open(mask_pth).convert('L')
+        
+        ## convert to numpy to fit the required dtype of albumentation
+        image = np.array(image)
+        mask = np.array(mask)
+
+        # apply augmentations
+        if self.mode == 'train':
+            if self.augmentation:   # Albumentation
+                sample = self.augmentation(image=image, mask=mask)
+                image, mask = sample['image'], sample['mask']
+            elif self.tr_transform:
+                image, mask = self.tr_transform(image, mask)
+            
+        # apply preprocessing
+        if self.preprocessing:
+            mask = one_hot_encode(mask, 19)
+            sample = self.preprocessing(image=image, mask=mask)
+            image, mask = sample['image'], sample['mask']
+            mask = reverse_one_hot(mask)
+        else:
+            image = self.to_tensor(image)
+            mask = torch.from_numpy(np.array(mask)).long()
+        return image, mask
+
     
-    def __len__():
-        pass
+    def __len__(self):
+        if self.mode != "test":
+            return len(self.train_dataset)
+        else:
+            return len(self.test_dataset)
     
 if __name__ == "__main__":
     ROOT_DIR = "/home/hsu/HD/CV/Synth-CelebAMask-HQ"
