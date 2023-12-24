@@ -94,11 +94,11 @@ def test_fn():
 
     ## make sure the setting is same as the model in train.py
     # ENCODER = 'efficientnet-b3'
-    ENCODER = 'resnet50'
+    ENCODER = 'timm-resnest50d'
     ENCODER_WEIGHTS = 'imagenet'
-    model = smp.DeepLabV3Plus(
+    model = smp.PSPNet(
         encoder_name=ENCODER, 
-        # encoder_weights=ENCODER_WEIGHTS, 
+        encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
     )
     

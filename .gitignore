@@ -187,3 +187,4 @@ test_result/
 wandb/*
 *.jpg
 *.png
+train2.py

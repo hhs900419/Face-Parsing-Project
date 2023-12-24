@@ -49,7 +49,7 @@ class Trainer:
             # 3. compute the loss
             loss1 = self.criterion(outputs, mask)
             loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
-            loss = 0.6*loss1 + 0.4*loss2
+            loss = 0.5*loss1 + 0.5*loss2
             # loss = loss1
             # 4. back propagation
             loss.backward()
@@ -158,6 +158,8 @@ class Trainer:
                 "valid_loss": valid_loss,
                 "train_f1": train_f1,
                 "valid_f1": valid_f1,
+                "train_miou": tr_miou,
+                "valid_miou": val_miou,
                 "lr": self.get_lr(self.optimizer)
             })
             

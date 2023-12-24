@@ -76,8 +76,8 @@ def train():
         name=f"experiment_{get_current_timestamp()}", 
         # Track hyperparameters and run metadata
         config={
-        "model Architecture": "FPN",
-        "encoder": "res101",
+        "model Architecture": "DLv3+",
+        "encoder": "r152",
         "freeze encoder": False,
         "augmentation": True,
         "batch size": configs.batch_size,
@@ -95,9 +95,10 @@ def train():
     DEVICE = configs.device
     ############# SMP library ##########
     # ENCODER = 'efficientnet-b6'
-    ENCODER = 'resnet101'
+    # ENCODER = 'resnet101'
+    ENCODER = 'resnet152'
     ENCODER_WEIGHTS = 'imagenet'
-    model = smp.FPN(
+    model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
