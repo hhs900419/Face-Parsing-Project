@@ -102,3 +102,69 @@ class CelebAMask_HQ_Dataset(Dataset):
 
     def __len__(self):
         return len(self.sample_indices)
+    
+    
+class Synth_CelebAMask_HQ_Dataset(Dataset):
+    def __init__(self, 
+                root_dir,
+                mode,
+                augmentation=None,
+                tr_transform=None,
+                preprocessing=None,
+                split_ratio=0.8
+                ):
+        assert mode in ('train', "val", "test")
+
+        self.root_dir = root_dir
+        self.mode = mode
+
+        self.tr_transform = tr_transform
+        self.to_tensor = transforms.Compose([
+            transforms.ToTensor(),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+
+        self.image_dir = os.path.join(root_dir, 'synth-img')  # Path to image folder
+        self.mask_dir = os.path.join(root_dir, 'masks')    # Path to mask folder
+        self.augmentation = augmentation
+        self.preprocessing = preprocessing
+        self.split_ratio = split_ratio
+        
+        self.whole_dataset = []
+        self.train_dataset = []
+        self.test_dataset = []
+        
+        self.list_preprocess()
+        print(self.whole_dataset)
+        print(len(self.whole_dataset))
+        ### split synthesis data with 8:2 ratio by defualt
+        split_index = int(len(self.whole_dataset) * self.split_ratio)
+        self.train_dataset = self.whole_dataset[:split_index]
+        self.test_dataset = self.whole_dataset[split_index:]
+        print(len(self.train_dataset))
+        print(len(self.test_dataset))
+        
+        
+    def list_preprocess(self):
+        img_files = os.listdir(self.image_dir)
+        mask_files = os.listdir(self.mask_dir)
+        img_files.sort()
+        mask_files.sort()
+        for img_name in img_files:
+            img_path = osp.join(self.image_dir, img_name.split('.')[0], ".jpg")
+            mask_path = osp.join(self.mask_dir, img_name.split('.')[0], ".png")
+            self.whole_dataset.append([img_path, mask_path])
+                
+            
+    def __getitem__(self, idx):
+        pass
+    
+    def __len__():
+        pass
+    
+if __name__ == "__main__":
+    ROOT_DIR = "/home/hsu/HD/CV/Synth-CelebAMask-HQ"
+    trainset = Synth_CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
+                            mode='train', 
+                            tr_transform=None)
