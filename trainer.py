@@ -11,13 +11,14 @@ from criterion import *
 from configs import *
 
 class Trainer:
-    def __init__(self, model, trainloader, validloader, epochs, criterion, optimizer, device, savepath, savename, scheduler=None):
+    def __init__(self, model, trainloader, validloader, epochs, criterion, criterion2,optimizer, device, savepath, savename, scheduler=None):
         # Class Atrribute initialization
         self.model = model
         self.train_loader = trainloader
         self.valid_loader = validloader
         self.epochs = epochs
         self.criterion = criterion
+        self.criterion2 = criterion2
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.device = device
@@ -49,6 +50,7 @@ class Trainer:
             # 3. compute the loss
             loss1 = self.criterion(outputs, mask)
             loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
+                # loss2 = self.criterion2(outputs, mask)
             loss = 0.5*loss1 + 0.5*loss2
             # loss = loss1
             # 4. back propagation
@@ -87,6 +89,7 @@ class Trainer:
                 outputs = self.model(img)
                 loss1 = self.criterion(outputs, mask)
                 loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
+                # loss2 = self.criterion2(outputs, mask)
                 loss = 0.6*loss1 + 0.4*loss2
                 # loss = loss1
                 val_losses.append(loss.cpu().detach().numpy())

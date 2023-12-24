@@ -169,6 +169,7 @@ def train():
     # Define your initial learning rate, max epochs, and power for polynomial decay
        
     criterion = smp.losses.DiceLoss(mode='multiclass', from_logits=True)
+    criterion2 = smp.losses.FocalLoss(mode='multiclass')
     # criterion = DiceLoss()
     # criterion = focal_loss()
     SAVEPATH = configs.model_path
@@ -180,6 +181,7 @@ def train():
         validloader=valid_loader,
         epochs=EPOCHS,
         criterion=criterion, 
+        criterion2=criterion2, 
         optimizer=optimizer,
         scheduler=scheduler, 
         # scheduler=None, 
