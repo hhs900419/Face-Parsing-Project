@@ -17,6 +17,7 @@ import torch
 from torch.backends import cudnn
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
+from torch.utils.data import ConcatDataset
 from torch import optim
 import gc
 import wandb
@@ -77,7 +78,7 @@ def train():
         # Track hyperparameters and run metadata
         config={
         "model Architecture": "DLv3+",
-        "encoder": "r152",
+        "encoder": "re50",
         "freeze encoder": False,
         "augmentation": True,
         "batch size": configs.batch_size,
@@ -85,7 +86,8 @@ def train():
         "epochs": configs.epochs,
         "criterion": "Dice + CE",
         "scheduler": "Reduce on Plateau",
-        "model weight": configs.model_weight
+        "model weight": configs.model_weight,
+        "finetune": True
         }
     )
     
@@ -96,7 +98,7 @@ def train():
     ############# SMP library ##########
     # ENCODER = 'efficientnet-b6'
     # ENCODER = 'resnet101'
-    ENCODER = 'resnet152'
+    ENCODER = 'resnet50'
     ENCODER_WEIGHTS = 'imagenet'
     model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
@@ -127,12 +129,26 @@ def train():
     validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                 sample_indices=test_indices, 
                                 mode = 'val')
+    
+    SYNTH_ROOT_DIR = configs.synth_root_dir
+    synth_trainset = Synth_CelebAMask_HQ_Dataset(root_dir=SYNTH_ROOT_DIR, 
+                                mode='train', 
+                                augmentation=get_training_augmentation(),
+                                tr_transform=None)
+    synth_validset = Synth_CelebAMask_HQ_Dataset(root_dir=SYNTH_ROOT_DIR, 
+                                mode='test', 
+                                augmentation=get_training_augmentation(),
+                                tr_transform=None)
+
     if configs.debug:
         validset = CelebAMask_HQ_Dataset(root_dir=ROOT_DIR, 
                                     sample_indices=valid_indices, 
                                     mode = 'val')
                                     # preprocessing=get_preprocessing(preprocessing_fn))
     
+    concat_trainset = ConcatDataset([trainset, synth_trainset])
+    concat_validset = ConcatDataset([validset, synth_validset])
+
     ### 6. dataloader ###
     BATCH_SIZE = configs.batch_size
     N_WORKERS = configs.n_workers
@@ -150,6 +166,24 @@ def train():
                         num_workers = N_WORKERS, 
                         pin_memory = True,
                         drop_last = False)
+    synth_train_loader = DataLoader(synth_trainset,
+                        batch_size = BATCH_SIZE,
+                        shuffle = True,
+                        num_workers = N_WORKERS,
+                        pin_memory = True,
+                        drop_last = True)
+    concat_train_loader = DataLoader(concat_trainset,
+                        batch_size = BATCH_SIZE,
+                        shuffle = False,
+                        num_workers = N_WORKERS, 
+                        pin_memory = True,
+                        drop_last = False)
+    concat_valid_loader = DataLoader(concat_validset,
+                        batch_size = BATCH_SIZE,
+                        shuffle = False,
+                        num_workers = N_WORKERS, 
+                        pin_memory = True,
+                        drop_last = False)
     print(f"training data: {len(trainset)} and test data: {len(validset)} loaded succesfully ...")
     
     
@@ -162,7 +196,7 @@ def train():
     LR = configs.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.001, amsgrad=False)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2, factor=0.4, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.3, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     # tmax = len(train_loader) * EPOCHS
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=tmax, eta_min=5e-6)  # goal: maximize miou
     
@@ -177,8 +211,10 @@ def train():
     
     ### 8. training ###
     Trainer( model=model, 
-        trainloader=train_loader,
-        validloader=valid_loader,
+        trainloader=concat_train_loader,
+        # trainloader=train_loader,
+        validloader=concat_valid_loader,
+        # validloader=valid_loader,
         epochs=EPOCHS,
         criterion=criterion, 
         criterion2=criterion2, 

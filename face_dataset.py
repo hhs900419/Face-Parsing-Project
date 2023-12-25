@@ -136,8 +136,8 @@ class Synth_CelebAMask_HQ_Dataset(Dataset):
         self.test_dataset = []
         
         self.list_preprocess()
-        print(self.whole_dataset)
-        print(len(self.whole_dataset))
+        # print(self.whole_dataset)
+        # print(len(self.whole_dataset))
         ### split synthesis data with 8:2 ratio by defualt
         split_index = int(len(self.whole_dataset) * self.split_ratio)
         self.train_dataset = self.whole_dataset[:split_index]

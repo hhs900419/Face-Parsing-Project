@@ -85,6 +85,7 @@ def test_fn():
     DEVICE = configs.device
     SAVEPATH = configs.model_path
     OUTPUT_DIR = f'{configs.cmp_result_dir}/vis_{get_current_timestamp()}'
+    OUTPUT_DIR_UNSEEN = f'{configs.cmp_result_dir}/unseen_vis_{get_current_timestamp()}'
     MODEL_WEIGHT = configs.load_model_weight
     
     if configs.debug:
@@ -94,9 +95,9 @@ def test_fn():
 
     ## make sure the setting is same as the model in train.py
     # ENCODER = 'efficientnet-b3'
-    ENCODER = 'timm-resnest50d'
+    ENCODER = 'resnet50'
     ENCODER_WEIGHTS = 'imagenet'
-    model = smp.PSPNet(
+    model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
         encoder_weights=ENCODER_WEIGHTS, 
         classes=19, 
@@ -118,7 +119,7 @@ def test_fn():
     
     
 
-   ### visualize and generate csv file
+    ### visualize and generate csv file
     cmap = np.array([(0,  0,  0), (204, 0,  0), (76, 153, 0),
                          (204, 204, 0), (51, 51, 255), (204, 0, 204), (0, 255, 255),
                          (51, 255, 255), (102, 51, 0), (255, 0, 0), (102, 204, 0),
@@ -140,81 +141,83 @@ def test_fn():
         test_dataset.append([img_path, label_path])
 
     # inference again in file order
-    test_dir = f"result/test_result_{get_current_timestamp()}"
-    for i in tqdm(range(0, len(test_indices))):
-        ### The below operation is simmilar to the __getitem__() function
-        idx = test_indices[i]
-        if configs.debug:
-            idx = valid_indices[i]
-            idx = train_indices[i]
-        img_pth, mask_pth = test_dataset[idx]
-        image = Image.open(img_pth).convert('RGB')
-        image = image.resize((512, 512), Image.BILINEAR)
-        mask = Image.open(mask_pth).convert('L')
+    # test_dir = f"result/test_result_{get_current_timestamp()}"
+    # for i in tqdm(range(0, len(test_indices))):
+    #     ### The below operation is simmilar to the __getitem__() function
+    #     idx = test_indices[i]
+    #     if configs.debug:
+    #         idx = valid_indices[i]
+    #         idx = train_indices[i]
+    #     img_pth, mask_pth = test_dataset[idx]
+    #     image = Image.open(img_pth).convert('RGB')
+    #     image = image.resize((512, 512), Image.BILINEAR)
+    #     mask = Image.open(mask_pth).convert('L')
 
-        image = to_tensor(image).unsqueeze(0)
-        gt_mask = torch.from_numpy(np.array(mask)).long()
+    #     image = to_tensor(image).unsqueeze(0)
+    #     gt_mask = torch.from_numpy(np.array(mask)).long()
 
-        ### predict with model
-        # pred_mask = model(image.to(DEVICE))     # predict
-        pred_mask = model(image.cuda())     # predict
-        pred_mask = pred_mask.data.max(1)[1].cpu().numpy()  # Matrix index  (1,19,h,w) => (1,h,w)
+    #     ### predict with model
+    #     # pred_mask = model(image.to(DEVICE))     # predict
+    #     pred_mask = model(image.cuda())     # predict
+    #     pred_mask = pred_mask.data.max(1)[1].cpu().numpy()  # Matrix index  (1,19,h,w) => (1,h,w)
         
-        image = image.squeeze(0).permute(1,2,0)     # (1,3,h,w) -> (h,w,3)
-        pred_mask = pred_mask.squeeze(0)            # (1,h,w) -> (h,w)
+    #     image = image.squeeze(0).permute(1,2,0)     # (1,3,h,w) -> (h,w,3)
+    #     pred_mask = pred_mask.squeeze(0)            # (1,h,w) -> (h,w)
 
 
-        classes = ['background', 'skin', 'l_brow', 'r_brow', 'l_eye', 'r_eye', 'eye_g', 'l_ear', 'r_ear', 'ear_r',
-                'nose', 'mouth', 'u_lip', 'l_lip', 'neck', 'neck_l', 'cloth', 'hair', 'hat']
-        one_hot_mask = one_hot_encode(pred_mask, 19)    # (h,w) -> (19, h, w)
-        # print(one_hot_mask.shape)
-        # print(one_hot_mask)
+    #     classes = ['background', 'skin', 'l_brow', 'r_brow', 'l_eye', 'r_eye', 'eye_g', 'l_ear', 'r_ear', 'ear_r',
+    #             'nose', 'mouth', 'u_lip', 'l_lip', 'neck', 'neck_l', 'cloth', 'hair', 'hat']
+    #     one_hot_mask = one_hot_encode(pred_mask, 19)    # (h,w) -> (19, h, w)
+    #     # print(one_hot_mask.shape)
+    #     # print(one_hot_mask)
         
        
-        TEST_ID_DIR = f'{test_dir}/Test-image-{idx}'
-        if not os.path.exists(TEST_ID_DIR):
-            os.makedirs(TEST_ID_DIR)
+    #     TEST_ID_DIR = f'{test_dir}/Test-image-{idx}'
+    #     if not os.path.exists(TEST_ID_DIR):
+    #         os.makedirs(TEST_ID_DIR)
 
-        dict_path = {}    
-        # save seperated predict masks 
-        for j in range(19):
-            if j == 0:
-                mask = one_hot_mask[j,:,:] * 0
-            else:
-                mask = one_hot_mask[j,:,:] * 255
-            cv2.imwrite(f"{TEST_ID_DIR}/{classes[j]}.png", mask)
-            dict_path[classes[j]] = f"{TEST_ID_DIR}/{classes[j]}.png"
+    #     dict_path = {}    
+    #     # save seperated predict masks 
+    #     for j in range(19):
+    #         if j == 0:
+    #             mask = one_hot_mask[j,:,:] * 0
+    #         else:
+    #             mask = one_hot_mask[j,:,:] * 255
+    #         cv2.imwrite(f"{TEST_ID_DIR}/{classes[j]}.png", mask)
+    #         dict_path[classes[j]] = f"{TEST_ID_DIR}/{classes[j]}.png"
 
 
-        # generate color mask image compared with GT(60 samples)
-        if i % 100 == 0:
-            color_gt_mask = cmap[gt_mask]
-            color_pr_mask = cmap[pred_mask]
-            plt.figure(figsize=(13, 6))
-            image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
-            image = image.resize((512, 512), Image.BILINEAR)
-            img_list = [image, color_pr_mask, color_gt_mask]
-            for n in range(3):
-                plt.subplot(1, 3, n+1)
-                plt.imshow(img_list[n])
-            plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
+    #     # generate color mask image compared with GT(60 samples)
+    #     if i % 100 == 0:
+    #         color_gt_mask = cmap[gt_mask]
+    #         color_pr_mask = cmap[pred_mask]
+    #         plt.figure(figsize=(13, 6))
+    #         image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
+    #         image = image.resize((512, 512), Image.BILINEAR)
+    #         img_list = [image, color_pr_mask, color_gt_mask]
+    #         for n in range(3):
+    #             plt.subplot(1, 3, n+1)
+    #             plt.imshow(img_list[n])
+    #         plt.savefig(f"{OUTPUT_DIR}/result_{idx}.jpg")
 
-        ### Reorder the 19 class order since we use a different order during preprocessing
-        labels_celeb = ['background','skin','nose',
-        'eye_g','l_eye','r_eye','l_brow',
-        'r_brow','l_ear','r_ear','mouth',
-        'u_lip','l_lip','hair','hat',
-        'ear_r','neck_l','neck','cloth']
+    #     ### Reorder the 19 class order since we use a different order during preprocessing
+    #     labels_celeb = ['background','skin','nose',
+    #     'eye_g','l_eye','r_eye','l_brow',
+    #     'r_brow','l_ear','r_ear','mouth',
+    #     'u_lip','l_lip','hair','hat',
+    #     'ear_r','neck_l','neck','cloth']
 
-        right_order_mask_path = {}
-        for lab in labels_celeb:
-            right_order_mask_path[lab] = dict_path[lab]
+    #     right_order_mask_path = {}
+    #     for lab in labels_celeb:
+    #         right_order_mask_path[lab] = dict_path[lab]
         
-        # Csv file for submission
-        mask2csv(mask_paths=right_order_mask_path, image_id=i)
-        # break
+    #     # Csv file for submission
+    #     mask2csv(mask_paths=right_order_mask_path, image_id=i)
+    #     # break
 
-    unseen_dir = "/home/hsu/HD/CV/unseen"
+    #### unseen dataset eval #######
+    unseen_dir = "/home/hsu/HD/CV/unseen_10samples"
+    # unseen_dir = "/home/hsu/HD/CV/unseen"
     image_list = []
     mask_list = []
 
@@ -235,7 +238,7 @@ def test_fn():
     # for mask in mask_list:
     #     print(mask)
 
-    test_dir = f"result/unseen_test_result_{get_current_timestamp()}"
+    test_dir = f"result/unseen_10_test_result_{get_current_timestamp()}"
     for i in tqdm(range(0, len(image_list))):
         ### The below operation is simmilar to the __getitem__() function
         img_pth = image_list[i]
@@ -304,6 +307,87 @@ def test_fn():
         # Csv file for submission
         # mask2csv(mask_paths=right_order_mask_path, image_id=i)
         # break
+            
+    #### unseen 2000 ####
+    test_dir = f"result/unseen_test_result_{get_current_timestamp()}"
+    unseen_dir = "/home/hsu/HD/CV/unseen"
+    image_list = []
+
+    # Iterate through the files in the directory
+    for filename in os.listdir(unseen_dir):
+        if filename.endswith('.jpg'):
+            image_list.append(os.path.join(unseen_dir, filename))
+    plist = []
+    for file in image_list:
+        name = file.split('_')[0]
+        plist.append(int(name.split('/')[-1]))
+    print(len(plist))
+    combined_list = list(zip(image_list, plist))
+    sorted_combined_list = sorted(combined_list, key=lambda x: x[1])
+    image_list, _ = zip(*sorted_combined_list)
+    print(image_list[:10])
+
+    # for image in image_list:
+    #     print(image)
+
+    for i in tqdm(range(0, len(image_list))):
+        ### The below operation is simmilar to the __getitem__() function
+        img_pth = image_list[i]
+        image = Image.open(img_pth).convert('RGB')
+        image = image.resize((512, 512), Image.BILINEAR)
+        image = to_tensor(image).unsqueeze(0)
+        # mask = Image.open(mask_pth).convert('L')
+        # gt_mask = torch.from_numpy(np.array(mask)).long()
+        # print(image.shape)
+        ### predict with model
+        pred_mask = model(image.cuda())     # predict
+        pred_mask = pred_mask.data.max(1)[1].cpu().numpy()  # Matrix index  (1,19,h,w) => (1,h,w)
+        
+        image = image.squeeze(0).permute(1,2,0)     # (1,3,h,w) -> (h,w,3)
+        pred_mask = pred_mask.squeeze(0)            # (1,h,w) -> (h,w)
+
+        classes = ['background', 'skin', 'l_brow', 'r_brow', 'l_eye', 'r_eye', 'eye_g', 'l_ear', 'r_ear', 'ear_r',
+                'nose', 'mouth', 'u_lip', 'l_lip', 'neck', 'neck_l', 'cloth', 'hair', 'hat']
+        one_hot_mask = one_hot_encode(pred_mask, 19)    # (h,w) -> (19, h, w)
+       
+        TEST_ID_DIR = f'{test_dir}/Test-image-{i}'
+        if not os.path.exists(TEST_ID_DIR):
+            os.makedirs(TEST_ID_DIR)
+
+        dict_path = {}    
+        # save seperated predict masks 
+        for j in range(19):
+            mask = one_hot_mask[j,:,:] * 255
+            cv2.imwrite(f"{TEST_ID_DIR}/{classes[j]}.png", mask)
+            dict_path[classes[j]] = f"{TEST_ID_DIR}/{classes[j]}.png"
+
+
+        # generate color mask image compared with GT(60 samples)
+        # if i % 100 == 0:
+        #     color_pr_mask = cmap[pred_mask]
+        #     plt.figure(figsize=(13, 6))
+        #     image = Image.open(img_pth).convert('RGB')      # we want the image without normalization for plotting
+        #     image = image.resize((512, 512), Image.BILINEAR)
+        #     img_list = [image, color_pr_mask]
+        #     for n in range(2):
+        #         plt.subplot(1, 2, n+1)
+        #         plt.imshow(img_list[n])
+        #     plt.savefig(f"{OUTPUT_DIR_UNSEEN}/result_{i}.jpg")
+
+        ### Reorder the 19 class order since we use a different order during preprocessing
+        labels_celeb = ['background','skin','nose',
+        'eye_g','l_eye','r_eye','l_brow',
+        'r_brow','l_ear','r_ear','mouth',
+        'u_lip','l_lip','hair','hat',
+        'ear_r','neck_l','neck','cloth']
+
+        right_order_mask_path = {}
+        for lab in labels_celeb:
+            right_order_mask_path[lab] = dict_path[lab]
+        
+        # Csv file for submission
+        mask2csv(mask_paths=right_order_mask_path, image_id=i)
+    
 
 if __name__ == "__main__":
     test_fn()

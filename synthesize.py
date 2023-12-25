@@ -18,19 +18,27 @@ def list_preprocess(image_dir, mask_dir):
         train_dataset.append([img_path, label_path])
     return train_dataset
 
-def synthesize_imgs(img1, img1_mask, img2, img2_mask, least_shift=50, max_shift=350, ratio=0.15):
+def synthesize_imgs(img1, img1_mask, img2, img2_mask, least_hori_shift=50, max_hori_shift=350,
+                    least_vert_shift=50, max_vert_shift=350, ratio=0.15, hairmode=False):
     # get the bg mask
     img1_one_hot_mask = one_hot_encode(np.array(img1_mask), 19)    # (h,w) -> (19, h, w)
     img2_one_hot_mask = one_hot_encode(np.array(img2_mask), 19)    # (h,w) -> (19, h, w)
     img1_bg_mask = img1_one_hot_mask[0]
     img2_bg_mask = img2_one_hot_mask[0] 
+    img2_hr_mask = img2_one_hot_mask[17] 
     img2 = np.array(img2)
     img1 = np.array(img1)
+
+    total_area = img1.shape[0] * img1.shape[1]
+    threshold = total_area * 0.25
+    if hairmode and np.sum(img2_hr_mask) < threshold:
+        return None, None, None
+
     cnt = 0
     while True:
         # Specify the number of pixels to shift
-        tx = np.random.randint(least_shift, max_shift+1)  # Shift along the x-axis (horizontal)
-        ty = np.random.randint(least_shift, max_shift+1)  # Shift along the y-axis (vertical)
+        tx = np.random.randint(least_hori_shift, max_hori_shift+1)  # Shift along the x-axis (horizontal)
+        ty = np.random.randint(least_vert_shift, max_vert_shift+1)  # Shift along the y-axis (vertical)
         if random.choice([True, False]):
             tx = -tx
         if random.choice([True, False]):
@@ -48,7 +56,7 @@ def synthesize_imgs(img1, img1_mask, img2, img2_mask, least_shift=50, max_shift=
             x_end = img2.shape[1]
         else:
             x_start = 0
-            x_end = ty
+            x_end = tx
 
         if ty < 0:
             y_start = img2.shape[0] - abs(ty)
@@ -86,7 +94,9 @@ if __name__ == "__main__":
     new_dataset_path = "/home/hsu/HD/CV/Synth-CelebAMask-HQ"
     synth_image_dir = os.path.join(new_dataset_path, 'synth-img')
     synth_mask_dir = os.path.join(new_dataset_path, 'masks')
-    nums = 2400
+    total_num = 8000
+    hair_num = int(total_num * 0.3)
+    face_num = total_num - hair_num
     
     if not os.path.exists(synth_image_dir):
         os.makedirs(synth_image_dir)
@@ -109,8 +119,8 @@ if __name__ == "__main__":
     mask_dir = os.path.join(ROOT_DIR, 'mask')    # Path to mask folder
     train_dataset = list_preprocess(image_dir, mask_dir)
     # print(len(train_dataset))
-    
-    while len(os.listdir(synth_image_dir)) < nums:
+    HAIR_MODE = True
+    while len(os.listdir(synth_image_dir)) < hair_num:
         #### random select 2 training data and load images and masks
         while True:
             idx_1 = random.randint(0, len(train_indices)-1)
@@ -130,7 +140,47 @@ if __name__ == "__main__":
         img2 = img2.resize((512, 512), Image.BILINEAR)
         img2_mask = Image.open(img2_mask_pt).convert('L')
         
-        synth_img, synth_mask, synth_bg_mask = synthesize_imgs(img1, img1_mask, img2, img2_mask, least_shift=50, max_shift=350, ratio=0.1)
+        
+        synth_img, synth_mask, synth_bg_mask = synthesize_imgs(img1, img1_mask, img2, img2_mask, 
+                                                                least_hori_shift=350, max_hori_shift=450,
+                                                                least_vert_shift=0, max_vert_shift=350, 
+                                                                ratio=0.05, hairmode=True)
+        
+        if synth_img is None:
+            continue
+        
+        synth_img = cv2.cvtColor(synth_img, cv2.COLOR_RGB2BGR)
+        if HAIR_MODE:
+            cv2.imwrite(f"{synth_image_dir}/synth_hair_{idx_1}.jpg", synth_img)
+            synth_mask.save(f"{synth_mask_dir}/synth_hair_{idx_1}.png")
+        print(len(os.listdir(synth_image_dir)))
+    
+    HAIR_MODE = False
+    while len(os.listdir(synth_image_dir)) < total_num:
+        #### random select 2 training data and load images and masks
+        while True:
+            idx_1 = random.randint(0, len(train_indices)-1)
+            idx_2 = random.randint(0, len(train_indices)-1)
+            idx_1 = train_indices[idx_1]
+            idx_2 = train_indices[idx_2]
+            if idx_1 != idx_2:
+                break
+
+        img1_pt, img1_mask_pt = train_dataset[idx_1]
+        img2_pt, img2_mask_pt = train_dataset[idx_2]
+
+        img1 = Image.open(img1_pt).convert('RGB')
+        img1 = img1.resize((512, 512), Image.BILINEAR)
+        img1_mask = Image.open(img1_mask_pt).convert('L')
+        img2 = Image.open(img2_pt).convert('RGB')
+        img2 = img2.resize((512, 512), Image.BILINEAR)
+        img2_mask = Image.open(img2_mask_pt).convert('L')
+        
+        
+        synth_img, synth_mask, synth_bg_mask = synthesize_imgs(img1, img1_mask, img2, img2_mask, 
+                                                            least_hori_shift=150, max_hori_shift=256,
+                                                            least_vert_shift=30, max_vert_shift=250, 
+                                                            ratio=0.10, hairmode=False)
         
         if synth_img is None:
             continue
@@ -139,4 +189,7 @@ if __name__ == "__main__":
         cv2.imwrite(f"{synth_image_dir}/synth_{idx_1}.jpg", synth_img)
         synth_mask.save(f"{synth_mask_dir}/synth_{idx_1}.png")
         print(len(os.listdir(synth_image_dir)))
+    
     print(len(os.listdir("/home/hsu/HD/CV/Synth-CelebAMask-HQ/masks")))
+    print(face_num)
+    print(hair_num)

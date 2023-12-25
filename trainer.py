@@ -90,7 +90,7 @@ class Trainer:
                 loss1 = self.criterion(outputs, mask)
                 loss2 = cross_entropy2d(outputs, mask.long(), reduction='mean')
                 # loss2 = self.criterion2(outputs, mask)
-                loss = 0.6*loss1 + 0.4*loss2
+                loss = 0.5*loss1 + 0.5*loss2
                 # loss = loss1
                 val_losses.append(loss.cpu().detach().numpy())
                 

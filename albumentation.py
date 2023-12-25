@@ -9,13 +9,14 @@ def get_training_augmentation():
         albu.OneOf([
             albu.RandomBrightnessContrast(),
             albu.HueSaturationValue(),
-            albu.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.5),
+            albu.RGBShift(r_shift_limit=40, g_shift_limit=40, b_shift_limit=40, p=0.5),
             albu.Sharpen(),
         ], p=0.35),
-        # albu.OneOf([
-        #     albu.Blur(blur_limit=3, p=0.1),
-        #     albu.GaussNoise(p=0.3),
-        # ], p=0.5)
+        albu.OneOf([
+            albu.Blur(blur_limit=3, p=0.3),
+            albu.GaussNoise(p=0.3),
+            albu.GaussianBlur(p=0.3),
+        ], p=0.3)
     ]
     return albu.Compose(train_transform)
 
