@@ -30,6 +30,9 @@ python train.py
 ```Shell
 python test.py
 ```
+- put the correct path for the dataset in `config.py`
+- put the payh of the weight in `config.py` and remember to initialize the correct model in test.py
+- there are three parts in `test.py`, if you want to generate the submisssion csv file for CelebAMask-HQ, comment out the code for evaluating unseen dataset, if you want to inference on unseen dataset, comment out the CelebAMask-HQ part
 - 60 comparison results are generated for better visualization of the model performance
 - a csv file will be generated for Kaggle submission
 
@@ -41,23 +44,4 @@ python test.py
 - [10 samples from Unseen dataset](https://drive.google.com/drive/folders/1jbOs1aBDN3myl6WX47Qy8nUqp9svA8-j)
 - [FaceSynthetics](https://github.com/microsoft/FaceSynthetics) dataset (optional)
 
-## TODOs
-#### Training
-- Keep tuning our model to acheive better result
-- External Dataset not added yet [FaceSynthetics](https://github.com/microsoft/FaceSynthetics), adding image with non-nuetral pose or occlusion might help.
-- The unseen dataset is **LaPa**
 
-#### Preprocessing
-- Face detection: crop the face region before feed to the model
-- Alignment: pose problem needs to be solved (keypoint?)
-- [new method](https://github.com/hhj1897/face_parsing), not sure if it is east to implement
-
-#### Postprocessing
-- CRF
-- boundary smoothing
-- Grabcut
-
-#### Extra techniques
-- model ensembling
-
-# 大家加油
