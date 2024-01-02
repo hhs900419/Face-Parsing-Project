@@ -5,11 +5,12 @@ RESIZE_SIZE = 448
 
 def get_training_augmentation():
     train_transform = [
-        albu.Rotate(limit=25,p=0.5,border_mode=cv2.BORDER_CONSTANT),
+        albu.Rotate(limit=20,p=0.5,border_mode=cv2.BORDER_CONSTANT),
         albu.OneOf([
             albu.RandomBrightnessContrast(),
             albu.HueSaturationValue(),
             albu.RGBShift(r_shift_limit=40, g_shift_limit=40, b_shift_limit=40, p=0.5),
+            # albu.ColorJitter(p=0.5),
             albu.Sharpen(),
         ], p=0.35),
         albu.OneOf([

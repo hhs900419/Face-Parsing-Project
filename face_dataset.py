@@ -10,6 +10,8 @@ import json
 import cv2
 from utils import *
 
+np.random.seed(1187)
+
 class CelebAMask_HQ_Dataset(Dataset):
     def __init__(self, 
                 root_dir,
@@ -111,7 +113,7 @@ class Synth_CelebAMask_HQ_Dataset(Dataset):
                 augmentation=None,
                 tr_transform=None,
                 preprocessing=None,
-                split_ratio=0.8
+                split_ratio=0.85
                 ):
         assert mode in ('train', "val", "test")
 
@@ -139,6 +141,7 @@ class Synth_CelebAMask_HQ_Dataset(Dataset):
         # print(self.whole_dataset)
         # print(len(self.whole_dataset))
         ### split synthesis data with 8:2 ratio by defualt
+        np.random.shuffle(self.whole_dataset)
         split_index = int(len(self.whole_dataset) * self.split_ratio)
         self.train_dataset = self.whole_dataset[:split_index]
         self.test_dataset = self.whole_dataset[split_index:]

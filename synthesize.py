@@ -94,7 +94,7 @@ if __name__ == "__main__":
     new_dataset_path = "/home/hsu/HD/CV/Synth-CelebAMask-HQ"
     synth_image_dir = os.path.join(new_dataset_path, 'synth-img')
     synth_mask_dir = os.path.join(new_dataset_path, 'masks')
-    total_num = 8000
+    total_num = 20000
     hair_num = int(total_num * 0.3)
     face_num = total_num - hair_num
     

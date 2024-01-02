@@ -78,7 +78,7 @@ def train():
         # Track hyperparameters and run metadata
         config={
         "model Architecture": "DLv3+",
-        "encoder": "re50",
+        "encoder": "rx101",
         "freeze encoder": False,
         "augmentation": True,
         "batch size": configs.batch_size,
@@ -87,7 +87,8 @@ def train():
         "criterion": "Dice + CE",
         "scheduler": "Reduce on Plateau",
         "model weight": configs.model_weight,
-        "finetune": True
+        "finetune": False,
+        "Synth_data": 12000
         }
     )
     
@@ -97,8 +98,8 @@ def train():
     DEVICE = configs.device
     ############# SMP library ##########
     # ENCODER = 'efficientnet-b6'
-    # ENCODER = 'resnet101'
     ENCODER = 'resnet50'
+    # ENCODER = 'resnext101_32x8d'
     ENCODER_WEIGHTS = 'imagenet'
     model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, 
@@ -110,7 +111,9 @@ def train():
     # for m in model.encoder.modules():
     #     m.requires_grad_ = False
     
-    # model = Unet(3,19)
+    # SAVEPATH = configs.model_path
+    # MODEL_WEIGHT = configs.load_model_weight
+    # model.load_state_dict(torch.load(os.path.join(SAVEPATH , MODEL_WEIGHT)))
     
     # model = model.to(DEVICE)
     # model = models.deeplabv3plus_xception.DeepLabv3_plus(nInputChannels=3, n_classes=19, os=16, pretrained=True)
@@ -194,7 +197,7 @@ def train():
     ### 7. hyper params ###
     EPOCHS = configs.epochs
     LR = configs.lr
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.001, amsgrad=False)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0001, amsgrad=False)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.2, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.3, min_lr=1e-6, verbose=True)  # goal: minimize val_loss/maximize miou
     # tmax = len(train_loader) * EPOCHS
@@ -211,8 +214,8 @@ def train():
     
     ### 8. training ###
     Trainer( model=model, 
+        # trainloader=concat_train_loader,
         trainloader=concat_train_loader,
-        # trainloader=train_loader,
         validloader=concat_valid_loader,
         # validloader=valid_loader,
         epochs=EPOCHS,
